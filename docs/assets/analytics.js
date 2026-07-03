@@ -301,9 +301,9 @@ function renderSpectrum(id, rows, m, label, capId) {
   }], {
     height: id === 'ov-spectrum' ? 300 : 330, margin: { l: 52, r: 14, t: 8, b: 42 }, bargap: 0.06,
     xaxis: { title: { text: '% of ' + label + ' genomes carrying the feature', font: PLOT_FONT }, gridcolor: LINE, zeroline: false, tickmode: 'array', tickvals: ['0', '25', '50', '75', '100'] },
-    yaxis: { title: { text: 'number of features', font: PLOT_FONT }, gridcolor: LINE, zeroline: false }
+    yaxis: { title: { text: 'number of features (log)', font: PLOT_FONT }, type: 'log', gridcolor: LINE, zeroline: false }
   });
-  if (capId) document.getElementById(capId).innerHTML = `<b>${label}</b> (${fmt(Ng)} genomes): <b>${fmt(core)}</b> core features (in every genome), <b>${fmt(unique)}</b> unique to a single genome, <b>${fmt(present)}</b> in the pan-repertoire. The bimodal U shape is the pangenome signature.`;
+  if (capId) document.getElementById(capId).innerHTML = `<b>${label}</b> (${fmt(Ng)} genomes): <b>${fmt(core)}</b> core features (in every genome), <b>${fmt(unique)}</b> unique to a single genome, <b>${fmt(present)}</b> in the pan-repertoire. The bimodal U shape is the panreactome signature.`;
 }
 
 /* =============================== METABOLIC LANDSCAPE =============================== */
@@ -448,11 +448,11 @@ function renderRarefaction(id, rar, metric, capId) {
   ], {
     height: 330, margin: { l: 52, r: 14, t: 8, b: 42 },
     xaxis: { title: { text: 'genomes sampled (N)', font: PLOT_FONT }, gridcolor: LINE, zeroline: false },
-    yaxis: { title: { text: metric, font: PLOT_FONT }, gridcolor: LINE, zeroline: false, rangemode: 'tozero' },
+    yaxis: { title: { text: metric + ' (log)', font: PLOT_FONT }, type: 'log', gridcolor: LINE, zeroline: false },
     legend: { orientation: 'h', y: 1.12, x: 0, font: { size: 10 } }
   });
   const open = rar.gamma > 0.05 ? 'an <b>open</b>' : 'a <b>closed</b>';
-  document.getElementById(capId).innerHTML = `Averaged over <b>${rar.perms}</b> random permutations of up to <b>${rar.Ncap}</b> genomes${rar.total > rar.Ncap ? ' (of ' + fmt(rar.total) + ')' : ''}. Heaps' law γ&nbsp;=&nbsp;<b>${rar.gamma.toFixed(3)}</b> → ${open} metabolic pangenome (pan keeps growing as N^γ; core plateaus).`;
+  document.getElementById(capId).innerHTML = `Averaged over <b>${rar.perms}</b> random permutations of up to <b>${rar.Ncap}</b> genomes${rar.total > rar.Ncap ? ' (of ' + fmt(rar.total) + ')' : ''}. Heaps' law γ&nbsp;=&nbsp;<b>${rar.gamma.toFixed(3)}</b> → ${open} metabolic panreactome (pan keeps growing as N^γ; core plateaus).`;
 }
 
 /* =============================== SPECIES DISTANCE HEATMAP =============================== */
