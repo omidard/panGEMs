@@ -11,7 +11,7 @@
   :root { --primary: #2c6fbb; --accent: #e8f0fe; }
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f7fa; }
   .hero {
-    background: linear-gradient(135deg, #1a3a5c 0%, #2c6fbb 55%, #7a3fb8 100%);
+    background: linear-gradient(135deg, #16324f 0%, #2c6fbb 62%, #3f86d4 100%);
     color: white; padding: 2rem 0; margin-bottom: 1.5rem;
   }
   .hero h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
@@ -120,6 +120,36 @@
   .btn-columns { border: 1px solid #ccc; background: white; font-size: 0.82rem; }
   .btn-columns:hover { background: #f0f0f0; }
   .btn-columns.active { background: var(--accent); border-color: var(--primary); }
+  /* Landing showcase screenshot */
+  .showcase { max-width: 980px; margin: -2.4rem auto 1.8rem; text-align: center; position: relative; z-index: 3; }
+  .showcase-frame { border-radius: 14px; overflow: hidden; background: #fff;
+    box-shadow: 0 20px 54px rgba(26,58,92,0.30); border: 1px solid #dbe3ee; }
+  .showcase-frame img { display: block; width: 100%; height: auto; }
+  .showcase-cap { font-size: 0.88rem; color: #6b7684; margin-top: 0.75rem; }
+  .showcase-cap strong { color: var(--primary); }
+  @media (max-width: 576px) { .showcase { margin-top: 0.4rem; } }
+  /* Dashboard */
+  .dash-section { margin: 0.4rem 0 1.6rem; }
+  .dash-head { font-size: 1.05rem; font-weight: 700; color: #1a3a5c; margin-bottom: 0.15rem; }
+  .dash-sub { font-size: 0.82rem; color: #8792a3; margin-bottom: 1rem; }
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 860px) { .dash-grid { grid-template-columns: 1fr; } }
+  .panel { background: #fff; border-radius: 10px; padding: 1rem 1.1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .panel-title { font-size: 0.9rem; font-weight: 700; color: #33455c; margin-bottom: 0.15rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .panel-note { font-size: 0.76rem; color: #8792a3; margin-bottom: 0.6rem; }
+  .panel.span-2 { grid-column: 1 / -1; }
+  .chart-box { position: relative; height: 300px; }
+  .chart-box.tall { height: 560px; }
+  #size-toggle { display: inline-flex; gap: 2px; background: #eef2f7; border-radius: 7px; padding: 2px; }
+  .metric-btn { border: none; background: transparent; font-size: 0.74rem; font-weight: 600; color: #6b7684;
+    padding: 3px 9px; border-radius: 5px; cursor: pointer; }
+  .metric-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+  #map { width: 100%; }
+  .map-legend { display: flex; align-items: center; gap: 0.5rem; font-size: 0.74rem; color: #8792a3; margin-top: 0.4rem; }
+  .map-legend .grad { flex: 0 0 160px; height: 9px; border-radius: 5px; border: 1px solid #e0e6ee; }
+  .map-tip { position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.12s;
+    background: #1a3a5c; color: #fff; font-size: 0.78rem; line-height: 1.25; padding: 0.4rem 0.6rem;
+    border-radius: 6px; z-index: 10001; box-shadow: 0 4px 14px rgba(0,0,0,0.25); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -132,6 +162,14 @@
 </div>
 
 <div class="container">
+  <!-- Showcase screenshot -->
+  <div class="showcase">
+    <div class="showcase-frame">
+      <img src="assets/gem_viewer.png" alt="The panGEMs in-browser GEM viewer: a strain-specific model's reactions, metabolites and genes shown in sortable tables" loading="lazy">
+    </div>
+    <div class="showcase-cap">Click any model to explore its full <strong>reactions</strong>, <strong>metabolites</strong> and <strong>genes</strong> — right in your browser, no install.</div>
+  </div>
+
   <!-- Stats -->
   <div class="row g-3 mb-3">
     <div class="col-6 col-md-3"><div class="stat-card"><div class="num" id="stat-total">-</div><div class="label">GEMs Available</div></div></div>
@@ -146,6 +184,40 @@
     <div class="col-6 col-md-3"><div class="stat-card usage-card"><div class="num" id="stat-downloads">-</div><div class="label"><span>&#11015;</span> GEM Downloads</div></div></div>
   </div>
   <div class="usage-note">Live usage since launch &middot; updated hourly</div>
+
+  <!-- Dashboard -->
+  <div class="dash-section" id="dashboard-section">
+    <div class="dash-head">The collection at a glance</div>
+    <div class="dash-sub">4,659 genome-scale models across two pangenomes &mdash; model size, taxonomic breadth, and where the strains were isolated.</div>
+    <div class="dash-grid">
+      <div class="panel">
+        <div class="panel-title">
+          <span>Model size distribution</span>
+          <span id="size-toggle">
+            <button class="metric-btn active" data-metric="n_reactions">Reactions</button>
+            <button class="metric-btn" data-metric="n_genes">Genes</button>
+            <button class="metric-btn" data-metric="n_metabolites">Metabolites</button>
+          </span>
+        </div>
+        <div class="panel-note">Two distinct size regimes: compact <span style="color:#c26a10;font-weight:600">Lactobacillaceae</span> models vs larger <span style="color:#2c6fbb;font-weight:600">E.&nbsp;coli</span> models.</div>
+        <div class="chart-box"><canvas id="chart-size"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>Lactobacillaceae genomes per species</span></div>
+        <div class="panel-note">26 species &middot; the <em>E.&nbsp;coli</em> collection adds 2,313 models as a single species.</div>
+        <div class="chart-box tall"><canvas id="chart-species"></canvas></div>
+      </div>
+      <div class="panel span-2">
+        <div class="panel-title"><span>Isolation geography</span></div>
+        <div class="panel-note">Strains with a recorded isolation country (98% mapped), shaded by number of models. Hover a country for details.</div>
+        <div id="map"></div>
+        <div class="map-legend" id="map-legend">
+          <span>0</span><span class="grad"></span><span class="max">–</span>
+          <span style="margin-left:0.4rem">models per country</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Filters -->
   <div class="filter-row">
@@ -254,6 +326,8 @@
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script>
 // Full-archive sources (per dataset)
 const ECO_ZENODO = 'https://zenodo.org/records/17581962/files/Ecoli_GEMs_for_Complete_genomes.zip?download=1';
@@ -305,7 +379,7 @@ window.addEventListener('DOMContentLoaded', loadUsageCounts);
 let table;
 let gemBatchMap = {};  // gem_file -> batch number
 
-const DATASET_COLORS = { 'EcopanGEM': '#2c6fbb', 'LactoPanGEM': '#7a3fb8' };
+const DATASET_COLORS = { 'EcopanGEM': '#2c6fbb', 'LactoPanGEM': '#c26a10' };
 function datasetBadge(v) {
   if (!v) return '';
   const c = DATASET_COLORS[v] || '#888';
@@ -933,5 +1007,6 @@ function switchGemTab(el, tabId) {
   gemDetailTables.forEach(t => t.columns.adjust());
 }
 </script>
+<script src="assets/dashboard.js"></script>
 </body>
 </html>

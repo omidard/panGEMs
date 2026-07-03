@@ -7,6 +7,18 @@
 panGEMs brings two large pangenome-scale GEM collections into a single searchable,
 filterable, downloadable web interface — no server, no install, everything runs in your browser.
 
+<p align="center">
+  <a href="https://omidard.github.io/panGEMs/">
+    <img src="docs/assets/gem_viewer.png" width="720" alt="The panGEMs in-browser GEM viewer showing a model's reactions, metabolites and genes"><br>
+    <em>Click any of the 4,659 models to explore its reactions, metabolites and genes in the browser.</em>
+  </a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/dashboard_preview.png" width="860" alt="panGEMs landing dashboard: model-size distribution, Lactobacillaceae genomes per species, and a world map of isolation geography"><br>
+  <em>The landing page dashboard — model size, taxonomic breadth, and isolation geography, all interactive.</em>
+</p>
+
 | Collection | Organism(s) | Models | Format | Source |
 |---|---|---:|---|---|
 | **EcopanGEM** | _Escherichia coli_ | 2,313 | JSON | [omidard/EcopanGEM](https://github.com/omidard/EcopanGEM) · [Zenodo 17581962](https://zenodo.org/records/17581962) |
@@ -17,6 +29,9 @@ filterable, downloadable web interface — no server, no install, everything run
 
 ## What you can do
 
+- **See the collection at a glance** — an interactive landing dashboard: model-size
+  distribution (reactions / genes / metabolites), _Lactobacillaceae_ genomes per species,
+  and a world map of isolation geography.
 - **Browse & search** 4,659 GEMs in one table, with rich per-model metadata.
 - **Filter** by dataset, organism (species), isolation source, country, and host.
 - **Inspect any model in the browser** — click a GEM file to view its full reaction,
@@ -96,6 +111,11 @@ panGEMs/
     ├── index.html               # the browser (single self-contained page)
     ├── gems_metadata.json       # unified metadata, 4,659 rows
     ├── gem_batches.json         # gem_file → batch-zip number
+    ├── assets/
+    │   ├── dashboard.js         # landing dashboard (Chart.js + d3)
+    │   ├── dashboard.json       # precomputed size / species / geo aggregates
+    │   ├── world.geojson        # slim Natural Earth 110m countries (ISO_A3)
+    │   └── *.png                # screenshots
     └── gems/
         ├── gems_batch_01..10.zip   # E. coli GEMs (from EcopanGEM)
         └── gems_batch_11..47.zip   # Lactobacillaceae GEMs
