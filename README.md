@@ -7,24 +7,54 @@
 panGEMs brings two large pangenome-scale GEM collections into a single searchable,
 filterable, downloadable web interface — no server, no install, everything runs in your browser.
 
-<p align="center">
-  <a href="https://omidard.github.io/panGEMs/">
-    <img src="docs/assets/gem_viewer.png" width="720" alt="The panGEMs in-browser GEM viewer showing a model's reactions, metabolites and genes"><br>
-    <em>Click any of the 4,659 models to explore its reactions, metabolites and genes in the browser.</em>
-  </a>
-</p>
+## Explore it online
+
+Two interactive web apps, both running **entirely in your browser** — no install, no login, nothing sent to a server.
+
+<!-- ─────────────────────────  panGEMs Browser  ───────────────────────── -->
+### 🧬 panGEMs Browser
+
+Browse, search and **filter all 4,659 GEMs** by dataset, organism, isolation source, country and host. Every model shows its reaction / metabolite / gene counts — **click any model to open it** and inspect its full reactions, metabolites and genes in searchable tables. A landing dashboard charts model size, taxonomic breadth, and a clickable world map of isolation geography.
+
+<table>
+<tr>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/"><img src="docs/shot_browser_1.png" alt="Searchable, filterable table of 4,659 E. coli + Lactobacillaceae GEMs" width="100%"></a></td>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/"><img src="docs/shot_browser_2.png" alt="At-a-glance dashboard: model size, genomes per species, and an isolation world map" width="100%"></a></td>
+</tr>
+<tr>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/"><img src="docs/shot_browser_3.png" alt="Per-model reactions with GPR rules and flux bounds" width="100%"></a></td>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/"><img src="docs/shot_browser_4.png" alt="Per-model metabolites with formula and compartment" width="100%"></a></td>
+</tr>
+</table>
 
 <p align="center">
-  <img src="docs/assets/dashboard_preview.png" width="860" alt="panGEMs landing dashboard: model-size distribution, Lactobacillaceae genomes per species, and a world map of isolation geography"><br>
-  <em>The landing page dashboard — model size, taxonomic breadth, and isolation geography, all interactive.</em>
+  <em>Searchable table · interactive dashboard · per-model reactions, metabolites &amp; genes</em><br><br>
+  <a href="https://omidard.github.io/panGEMs/"><img src="https://img.shields.io/badge/%E2%96%B6%20Open%20the%20panGEMs%20Browser-2C6FBB?style=for-the-badge&logo=googlechrome&logoColor=white" height="42" alt="Open the panGEMs Browser"></a>
+  &nbsp;&nbsp;<a href="https://omidard.github.io/panGEMs/"><code>omidard.github.io/panGEMs</code></a>
 </p>
 
+<br>
+
+<!-- ─────────────────────────  Analytics workspace  ───────────────────────── -->
+### 📊 Analytics workspace
+
+Compare and cluster the **reaction &amp; metabolite content** of the models — everything computed in your browser from a precomputed presence/absence matrix. Four tools: compare specific models, contrast cohorts by species or metadata, build hierarchically-clustered presence/absence **clustermaps**, and explore a **species tree** as NCBI taxonomy *or* a dendrogram built from metabolic content.
+
+<table>
+<tr>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/analytics.html"><img src="docs/shot_analytics_1.png" alt="Compare models — shared/unique reactions, pairwise similarity, differential table" width="100%"></a></td>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/analytics.html"><img src="docs/shot_analytics_2.png" alt="Compare groups — core/pan sizes, size distributions, differential prevalence" width="100%"></a></td>
+</tr>
+<tr>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/analytics.html"><img src="docs/shot_analytics_3.png" alt="Presence/absence clustermap over the most variable reactions" width="100%"></a></td>
+<td width="50%"><a href="https://omidard.github.io/panGEMs/analytics.html"><img src="docs/shot_analytics_4.png" alt="Species tree built from metabolic (reaction) content" width="100%"></a></td>
+</tr>
+</table>
+
 <p align="center">
-  <a href="https://omidard.github.io/panGEMs/analytics.html">
-    <img src="docs/assets/analytics_clustermap.png" width="430" alt="Presence/absence clustermap of reactions across models">
-    <img src="docs/assets/analytics_tree.png" width="430" alt="Species dendrogram built from metabolic content"><br>
-    <em>Analytics workspace — presence/absence clustermaps and a metabolic-content species tree.</em>
-  </a>
+  <em>compare models · compare groups · presence/absence clustermap · species tree</em><br><br>
+  <a href="https://omidard.github.io/panGEMs/analytics.html"><img src="https://img.shields.io/badge/%F0%9F%93%8A%20Launch%20the%20Analytics%20workspace-6E3FB5?style=for-the-badge&logo=googlechrome&logoColor=white" height="42" alt="Launch the Analytics workspace"></a>
+  &nbsp;&nbsp;<a href="https://omidard.github.io/panGEMs/analytics.html"><code>omidard.github.io/panGEMs/analytics.html</code></a>
 </p>
 
 | Collection | Organism(s) | Models | Format | Source |
