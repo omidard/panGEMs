@@ -3,238 +3,492 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>panGEMs Analytics — compare & cluster genome-scale models</title>
+<title>panGEMs Analytics — comparative genomics of 4,659 metabolic models</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
 <style>
-  :root { --primary:#2c6fbb; --eco:#2c6fbb; --lacto:#c26a10; --accent:#e8f0fe; }
-  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#f5f7fa; }
-  .hero { background:linear-gradient(135deg,#16324f 0%,#2c6fbb 62%,#3f86d4 100%); color:#fff; padding:1.4rem 0; }
-  .hero h1 { font-size:1.5rem; font-weight:700; margin:0; }
-  .hero a.back { color:#dbe9fb; font-size:0.85rem; text-decoration:none; }
-  .hero a.back:hover { color:#fff; text-decoration:underline; }
-  .note { background:#fff8ec; border:1px solid #f2dfb8; color:#7a5b1c; border-radius:8px;
-    padding:0.6rem 0.9rem; font-size:0.82rem; margin:1rem 0; }
-  .panel { background:#fff; border-radius:10px; padding:1.1rem 1.2rem; box-shadow:0 1px 3px rgba(0,0,0,0.08); margin-bottom:1.1rem; }
-  .panel h5 { font-size:1rem; font-weight:700; color:#1a3a5c; margin-bottom:0.2rem; }
-  .panel .sub { font-size:0.8rem; color:#8792a3; margin-bottom:0.9rem; }
-  .nav-tabs .nav-link { font-size:0.9rem; font-weight:600; color:#6b7684; }
-  .nav-tabs .nav-link.active { color:var(--primary); }
-  .chip { display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:#1a3a5c;
-    border-radius:14px; padding:3px 10px; font-size:0.78rem; margin:2px; }
-  .chip .x { cursor:pointer; font-weight:700; color:#7089a8; }
-  .chip .x:hover { color:#c0392b; }
-  .metric-toggle { display:inline-flex; gap:2px; background:#eef2f7; border-radius:7px; padding:2px; }
-  .metric-toggle button { border:none; background:transparent; font-size:0.76rem; font-weight:600; color:#6b7684; padding:3px 11px; border-radius:5px; cursor:pointer; }
-  .metric-toggle button.active { background:#fff; color:var(--primary); box-shadow:0 1px 2px rgba(0,0,0,0.12); }
-  .statgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:0.7rem; margin:0.4rem 0 1rem; }
-  .statbox { background:var(--accent); border-radius:8px; padding:0.7rem; text-align:center; }
-  .statbox .v { font-size:1.3rem; font-weight:700; color:var(--primary); }
-  .statbox .l { font-size:0.7rem; color:#667; text-transform:uppercase; letter-spacing:0.4px; }
-  .ds-eco { color:var(--eco); font-weight:600; } .ds-lacto { color:var(--lacto); font-weight:600; }
-  .badge-ds { font-size:0.7rem; padding:2px 7px; border-radius:4px; font-weight:600; }
-  .grp-builder { border:1px solid #e3e8ef; border-radius:8px; padding:0.8rem; }
-  .grp-builder.A { border-left:4px solid var(--eco); } .grp-builder.B { border-left:4px solid var(--lacto); }
-  .grp-builder label { font-size:0.74rem; font-weight:600; color:#556; margin-bottom:1px; }
-  .grp-builder select, .grp-builder input { font-size:0.82rem; }
-  select[multiple] { min-height:120px; }
-  table.mini { font-size:0.8rem; width:100%; }
-  table.mini th { background:#f4f7fb; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.3px; position:sticky; top:0; }
-  .present { color:#1a7f4b; font-weight:700; } .absent { color:#d9dee6; }
-  .heat-wrap { overflow:auto; border:1px solid #eef1f5; border-radius:8px; }
-  #cluster-canvas { display:block; }
-  .spin { display:inline-block; width:1.2rem; height:1.2rem; border:3px solid #cfe0f5; border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  .tree-tip, .cluster-tip { position:absolute; pointer-events:none; opacity:0; transition:opacity .12s;
-    background:#1a3a5c; color:#fff; font-size:0.76rem; padding:0.35rem 0.55rem; border-radius:6px; z-index:9999; box-shadow:0 4px 14px rgba(0,0,0,.25); white-space:nowrap; }
-  .node-species { cursor:pointer; }
-  .btn-mini { font-size:0.78rem; padding:0.2rem 0.6rem; }
-  footer { text-align:center; padding:1.3rem; color:#888; font-size:0.8rem; }
+  :root{
+    /* dataset categorical pair (CVD-validated) */
+    --eco:#2c6fbb; --lacto:#c26a10;
+    --eco-soft:#eaf1fa; --lacto-soft:#fbefe2;
+    /* ink tokens (text only) */
+    --ink-1:#152238; --ink-2:#4a5567; --ink-3:#8b95a5; --ink-4:#aeb7c4;
+    /* surfaces */
+    --surface:#ffffff; --canvas:#eef1f6; --raise:#f7f9fc;
+    --line:#e6eaf0; --line-2:#eef1f5;
+    /* accents */
+    --accent:#2c6fbb; --accent-soft:#eaf1fa;
+    --good:#1f9d63; --bad:#d0563b;
+    --sh-1:0 1px 2px rgba(20,40,80,.05), 0 1px 3px rgba(20,40,80,.05);
+    --sh-2:0 4px 14px rgba(20,40,80,.08), 0 1px 3px rgba(20,40,80,.05);
+    --sh-3:0 12px 34px rgba(20,40,80,.13);
+    --radius:14px;
+    --nav-w:236px;
+    --font:'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ font-family:var(--font); background:var(--canvas); color:var(--ink-1);
+    -webkit-font-smoothing:antialiased; font-size:14px; }
+  a{ color:var(--accent); text-decoration:none; }
+  a:hover{ text-decoration:underline; }
+  .tabular{ font-variant-numeric:tabular-nums; }
+
+  /* ============ TOP BAR ============ */
+  .topbar{ position:sticky; top:0; z-index:1200; background:rgba(255,255,255,.86);
+    backdrop-filter:saturate(1.6) blur(10px); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:14px; padding:9px 20px; }
+  .topbar .brand{ display:flex; align-items:center; gap:11px; }
+  .brand .logo{ width:34px; height:34px; border-radius:9px; flex:0 0 auto;
+    background:linear-gradient(140deg,#2c6fbb 0%,#1c4a86 100%);
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(44,111,187,.35); }
+  .brand .tt{ line-height:1.05; }
+  .brand .tt b{ font-size:15px; font-weight:700; letter-spacing:.1px; color:var(--ink-1); }
+  .brand .tt span{ font-size:11.5px; color:var(--ink-3); }
+  .topbar .spacer{ flex:1; }
+  .topbar .tb-link{ font-size:12.5px; color:var(--ink-2); padding:6px 11px; border-radius:8px; }
+  .topbar .tb-link:hover{ background:var(--raise); text-decoration:none; color:var(--ink-1); }
+  .topbar .tb-cta{ background:var(--accent); color:#fff; }
+  .topbar .tb-cta:hover{ background:#245a99; color:#fff; }
+  #navToggle{ display:none; border:1px solid var(--line); background:#fff; border-radius:8px; width:36px; height:34px; }
+
+  /* ============ SHELL ============ */
+  .shell{ display:flex; align-items:flex-start; }
+  .sidebar{ position:sticky; top:53px; width:var(--nav-w); flex:0 0 var(--nav-w);
+    height:calc(100vh - 53px); overflow-y:auto; padding:16px 12px 30px;
+    background:var(--surface); border-right:1px solid var(--line); }
+  .nav-group{ margin-bottom:14px; }
+  .nav-group > .lbl{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.9px;
+    color:var(--ink-4); padding:4px 12px 6px; }
+  .nav-item{ display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent;
+    text-align:left; padding:8px 12px; border-radius:9px; font-size:13.3px; font-weight:600; color:var(--ink-2);
+    cursor:pointer; transition:background .13s, color .13s; margin-bottom:1px; position:relative; }
+  .nav-item svg{ width:17px; height:17px; flex:0 0 auto; stroke:currentColor; opacity:.82; }
+  .nav-item:hover{ background:var(--raise); color:var(--ink-1); }
+  .nav-item.active{ background:var(--accent-soft); color:var(--accent); }
+  .nav-item.active svg{ opacity:1; }
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:7px; bottom:7px; width:3px; border-radius:3px; background:var(--accent); }
+  .sidebar .foot{ font-size:11px; color:var(--ink-4); padding:14px 12px 0; line-height:1.5; }
+
+  .content{ flex:1; min-width:0; padding:22px 26px 60px; max-width:1500px; margin:0 auto; }
+  @media(max-width:900px){
+    .sidebar{ position:fixed; z-index:1150; left:0; top:53px; transform:translateX(-102%); transition:transform .22s; box-shadow:var(--sh-3); }
+    .sidebar.open{ transform:none; }
+    #navToggle{ display:inline-flex; align-items:center; justify-content:center; }
+    .content{ padding:16px 14px 50px; }
+  }
+
+  /* ============ HERO / METRICS ============ */
+  .view-head{ margin-bottom:16px; }
+  .view-head h1{ font-size:22px; font-weight:750; letter-spacing:-.2px; margin:0 0 3px; color:var(--ink-1); }
+  .view-head p{ font-size:13.5px; color:var(--ink-2); margin:0; max-width:820px; line-height:1.5; }
+  .metric-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0 0 18px; }
+  .metric{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:15px 16px;
+    box-shadow:var(--sh-1); position:relative; overflow:hidden; }
+  .metric .v{ font-size:27px; font-weight:750; letter-spacing:-.5px; color:var(--ink-1); line-height:1; }
+  .metric .l{ font-size:11.5px; color:var(--ink-3); margin-top:6px; font-weight:600; }
+  .metric .accent-bar{ position:absolute; left:0; top:0; bottom:0; width:4px; }
+  .metric.hero{ grid-column:1 / -1; background:linear-gradient(120deg,#16324f 0%,#245a99 55%,#2c6fbb 100%); border:none; color:#fff; padding:22px 24px; }
+  .metric.hero .v{ font-size:44px; color:#fff; }
+  .metric.hero .l{ color:#cfe0f5; font-size:13px; }
+
+  /* ============ CARDS ============ */
+  .card2{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--sh-1); padding:16px 18px; margin-bottom:16px; }
+  .card2 .hd{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:2px; }
+  .card2 h3{ font-size:15px; font-weight:700; color:var(--ink-1); margin:0; letter-spacing:-.1px; }
+  .card2 .sub{ font-size:12.3px; color:var(--ink-3); margin:2px 0 12px; line-height:1.45; }
+  .caption{ font-size:12px; color:var(--ink-2); margin-top:11px; line-height:1.5; padding:9px 12px;
+    background:var(--raise); border-radius:9px; border-left:3px solid var(--accent); }
+  .caption b{ color:var(--ink-1); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-12-hero{ display:grid; grid-template-columns:1.35fr 1fr; gap:16px; }
+  @media(max-width:1050px){ .grid2,.grid-12-hero{ grid-template-columns:1fr; } }
+
+  /* controls */
+  .ctl-row{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; margin-bottom:4px; }
+  .ctl{ display:flex; flex-direction:column; gap:3px; }
+  .ctl label{ font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.5px; }
+  .ctl select,.ctl input{ font-size:13px; border:1px solid var(--line); border-radius:8px; padding:6px 9px; background:#fff; color:var(--ink-1); min-width:150px; }
+  .ctl select:focus,.ctl input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .seg{ display:inline-flex; gap:2px; background:var(--raise); border:1px solid var(--line); border-radius:9px; padding:3px; }
+  .seg button{ border:none; background:transparent; font-size:12.3px; font-weight:600; color:var(--ink-3); padding:5px 12px; border-radius:6px; cursor:pointer; transition:.12s; }
+  .seg button.active{ background:#fff; color:var(--accent); box-shadow:var(--sh-1); }
+  .btn2{ border:none; border-radius:9px; padding:8px 16px; font-size:13px; font-weight:650; cursor:pointer; transition:.13s; }
+  .btn-primary2{ background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(44,111,187,.28); }
+  .btn-primary2:hover{ background:#245a99; }
+  .btn-ghost{ background:#fff; border:1px solid var(--line); color:var(--ink-2); }
+  .btn-ghost:hover{ background:var(--raise); color:var(--ink-1); }
+  .btn-xs{ font-size:11.5px; padding:5px 11px; }
+
+  /* chips */
+  .chip{ display:inline-flex; align-items:center; gap:7px; border-radius:20px; padding:5px 11px; font-size:12.5px; margin:3px 4px 3px 0; font-weight:600; }
+  .chip .x{ cursor:pointer; font-weight:700; opacity:.6; }
+  .chip .x:hover{ opacity:1; }
+
+  /* legend */
+  .lgnd{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; font-size:12px; color:var(--ink-2); }
+  .lgnd .it{ display:inline-flex; align-items:center; gap:6px; }
+  .lgnd .sw{ width:11px; height:11px; border-radius:3px; flex:0 0 auto; }
+  .lgnd .dot{ width:10px; height:10px; border-radius:50%; }
+
+  /* stat inline */
+  .statgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(108px,1fr)); gap:9px; margin:2px 0 14px; }
+  .statbox{ background:var(--raise); border:1px solid var(--line-2); border-radius:10px; padding:11px 12px; }
+  .statbox .v{ font-size:20px; font-weight:750; color:var(--ink-1); letter-spacing:-.3px; }
+  .statbox .l{ font-size:10.5px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.4px; margin-top:3px; font-weight:600; }
+  .statbox.eco{ border-left:3px solid var(--eco); } .statbox.lacto{ border-left:3px solid var(--lacto); }
+
+  /* tables */
+  table.mini{ font-size:12.5px; width:100%; border-collapse:collapse; }
+  table.mini th{ background:var(--raise); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-3);
+    position:sticky; top:0; padding:7px 9px; text-align:left; border-bottom:1px solid var(--line); font-weight:700; z-index:2; }
+  table.mini td{ padding:6px 9px; border-bottom:1px solid var(--line-2); color:var(--ink-1); }
+  table.mini tr:hover td{ background:var(--raise); }
+  .present{ color:var(--good); font-weight:700; text-align:center; } .absent{ color:var(--ink-4); text-align:center; }
+  .tbl-scroll{ max-height:520px; overflow:auto; border:1px solid var(--line-2); border-radius:10px; }
+
+  .heat-wrap{ overflow:auto; border:1px solid var(--line-2); border-radius:10px; background:#fff; }
+  canvas.crisp{ display:block; }
+
+  /* plotly holders */
+  .plot{ width:100%; }
+
+  /* skeleton */
+  .sk{ background:linear-gradient(100deg,#eef1f6 30%,#f6f8fb 50%,#eef1f6 70%); background-size:200% 100%;
+    animation:shimmer 1.3s linear infinite; border-radius:10px; }
+  @keyframes shimmer{ to{ background-position:-200% 0; } }
+  .empty{ text-align:center; color:var(--ink-3); padding:38px 16px; font-size:13.5px; }
+  .empty svg{ width:34px; height:34px; stroke:var(--ink-4); margin-bottom:8px; }
+
+  /* spinner / loading page */
+  #loading{ min-height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+  .spin{ width:38px; height:38px; border:4px solid #d4e2f4; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .load-bar{ width:260px; height:6px; background:#dde5ef; border-radius:6px; overflow:hidden; }
+  .load-bar i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#2c6fbb,#3f86d4); transition:width .4s; border-radius:6px; }
+
+  /* tooltip */
+  .vtip{ position:fixed; pointer-events:none; opacity:0; transition:opacity .1s; z-index:9999;
+    background:#152238; color:#fff; font-size:12px; padding:7px 10px; border-radius:8px; box-shadow:var(--sh-3);
+    line-height:1.45; max-width:280px; }
+  .vtip .k{ color:#9fc0e8; }
+
+  .tag{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; letter-spacing:.4px; text-transform:uppercase; }
+  .tag-new{ background:#e7f6ee; color:#1f9d63; }
+  .tag-up{ background:#eaf1fa; color:var(--eco); }
+
+  footer{ text-align:center; padding:22px; color:var(--ink-4); font-size:12px; }
+  .view{ display:none; } .view.active{ display:block; animation:fade .28s ease; }
+  @keyframes fade{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  select[multiple]{ min-height:132px; }
 </style>
 </head>
-<body>
-<div class="hero">
-  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <div>
-      <h1>panGEMs Analytics</h1>
-      <div style="font-size:0.85rem;opacity:0.92">Compare, contrast &amp; cluster the reaction and metabolite content of 4,659 genome-scale models</div>
+<body data-palette="#2c6fbb,#c26a10" data-mode="light" data-pairs="all">
+
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <button id="navToggle" aria-label="menu">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5567" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div class="brand">
+    <div class="logo">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="7" r="2.4"/><circle cx="12" cy="17" r="2.4"/><path d="M7.7 7.3 10.4 15M16.4 8.6 13.3 15.4M8 6.4l8 .4"/></svg>
     </div>
-    <a class="back" href="index.html">&larr; Back to the GEM browser</a>
+    <div class="tt"><b>panGEMs Analytics</b><span>Comparative genomics of 4,659 metabolic models</span></div>
   </div>
+  <div class="spacer"></div>
+  <a class="tb-link" href="index.html">GEM browser</a>
+  <a class="tb-link tb-cta" href="index.html">&larr; Back</a>
 </div>
 
-<div class="container my-3">
-  <div id="loading" class="panel text-center">
-    <span class="spin"></span> <span id="loading-msg">Loading presence/absence matrices…</span>
-  </div>
+<!-- ============ LOADING ============ -->
+<div id="loading" class="container">
+  <div class="spin"></div>
+  <div style="font-weight:650;color:var(--ink-1);font-size:15px" id="loading-msg">Loading presence/absence matrices…</div>
+  <div class="load-bar"><i id="load-i"></i></div>
+  <div style="font-size:12px;color:var(--ink-3)">Streaming ~4&nbsp;MB of bit-packed reaction &amp; metabolite content, client-side.</div>
+</div>
 
-  <div id="app" style="display:none">
-    <div class="note" id="overlap-note"></div>
+<!-- ============ APP ============ -->
+<div class="shell" id="app" style="display:none">
+  <aside class="sidebar" id="sidebar">
+    <div class="nav-group">
+      <div class="lbl">Overview</div>
+      <button class="nav-item active" data-view="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Overview
+      </button>
+    </div>
+    <div class="nav-group">
+      <div class="lbl">Explore structure</div>
+      <button class="nav-item" data-view="landscape">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="8" r="2"/><circle cx="16" cy="6" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="18" cy="16" r="2"/><circle cx="6" cy="17" r="1.6"/></svg>
+        Metabolic landscape
+      </button>
+      <button class="nav-item" data-view="openness">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 20V7M3 20h18M6 20l3-9 4 5 3-11 5 15"/></svg>
+        Pangenome openness
+      </button>
+      <button class="nav-item" data-view="distance">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M10 4v16M15 4v16"/></svg>
+        Species distance
+      </button>
+      <button class="nav-item" data-view="tree">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M6 8h6a3 3 0 0 1 3 3M6 14h5a3 3 0 0 0 3-3"/><circle cx="18" cy="11" r="2"/><circle cx="6" cy="4" r="1.6"/></svg>
+        Species tree
+      </button>
+    </div>
+    <div class="nav-group">
+      <div class="lbl">Compare &amp; cluster</div>
+      <button class="nav-item" data-view="models">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
+        Compare models
+      </button>
+      <button class="nav-item" data-view="groups">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="8" r="3"/><circle cx="17" cy="8" r="3"/><path d="M2.5 19a4.5 4.5 0 0 1 9 0M12.5 19a4.5 4.5 0 0 1 9 0"/></svg>
+        Compare groups
+      </button>
+      <button class="nav-item" data-view="cluster">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="4" height="4"/><rect x="10" y="4" width="4" height="4"/><rect x="16" y="4" width="4" height="4"/><rect x="4" y="10" width="4" height="4"/><rect x="10" y="10" width="4" height="4"/><rect x="4" y="16" width="4" height="4"/></svg>
+        Clustermap
+      </button>
+    </div>
+    <div class="foot">
+      4,659 GEMs · 2 collections<br>EcopanGEM + LactoPanGEM<br>
+      <span style="color:var(--eco);font-weight:700">■</span> E. coli
+      <span style="color:var(--lacto);font-weight:700;margin-left:6px">■</span> Lactobacillaceae
+    </div>
+  </aside>
 
-    <ul class="nav nav-tabs mb-3" id="tabs">
-      <li class="nav-item"><button class="nav-link active" data-tab="models">Compare models</button></li>
-      <li class="nav-item"><button class="nav-link" data-tab="groups">Compare groups</button></li>
-      <li class="nav-item"><button class="nav-link" data-tab="cluster">Presence/absence clustermap</button></li>
-      <li class="nav-item"><button class="nav-link" data-tab="tree">Species tree</button></li>
-    </ul>
+  <main class="content">
 
-    <!-- ============ TAB: COMPARE MODELS ============ -->
-    <div class="tabpane" id="tab-models">
-      <div class="panel">
-        <h5>Compare specific models</h5>
-        <div class="sub">Add two or more models to see which reactions / metabolites they share and where they differ.</div>
-        <div class="row g-2 align-items-end">
-          <div class="col-md-7">
-            <label style="font-size:0.74rem;font-weight:600;color:#556">Search &amp; add a model (by accession, species or strain)</label>
-            <input id="m-search" class="form-control form-control-sm" list="m-list" placeholder="e.g. GCF_000014425.1, Lactobacillus gasseri, or 562.70503">
-            <datalist id="m-list"></datalist>
-          </div>
-          <div class="col-md-2"><button class="btn btn-sm btn-primary w-100" id="m-add">Add</button></div>
-          <div class="col-md-3 text-md-end">
-            <span class="metric-toggle" id="m-metric">
-              <button class="active" data-metric="reactions">Reactions</button>
-              <button data-metric="metabolites">Metabolites</button>
-            </span>
-          </div>
+    <!-- ========================= OVERVIEW ========================= -->
+    <section class="view active" id="view-overview">
+      <div class="view-head">
+        <h1>The metabolic universe of 4,659 genome-scale models</h1>
+        <p>Two pangenome collections — <b style="color:var(--eco)">2,313&nbsp;<i>Escherichia&nbsp;coli</i></b> and <b style="color:var(--lacto)">2,346 Lactobacillaceae</b> (26 species, 13 genera) — reconstructed as constraint-based metabolic models and reduced to a shared reaction/metabolite vocabulary you can compare, cluster and embed entirely in your browser.</p>
+      </div>
+      <div class="metric-row" id="ov-metrics"></div>
+      <div class="grid-12-hero">
+        <div class="card2">
+          <div class="hd"><div><h3>Metabolic landscape <span class="tag tag-new">new</span></h3></div>
+            <span class="seg" id="ov-embed-mode"><button class="active" data-mode="species">By species</button><button data-mode="models">By model</button></span></div>
+          <div class="sub">Every mark placed by <b>reaction content</b> via classical MDS (PCoA on Jaccard / cosine distance). Close = metabolically similar. The genera resolve into neighbourhoods and <i>E. coli</i> sits far off as an outgroup.</div>
+          <div id="ov-embed" class="plot" style="height:430px"></div>
+          <div class="caption" id="ov-embed-cap">Look for: the tight Lactobacillaceae cloud vs the distant <i>E. coli</i> island — the two reactomes share only ~20% of reactions.</div>
         </div>
-        <div class="mt-2" id="m-chips"></div>
-        <div class="d-flex gap-2 mt-1">
-          <button class="btn btn-outline-secondary btn-mini" id="m-examples">Load an example</button>
-          <button class="btn btn-outline-secondary btn-mini" id="m-clear">Clear</button>
+        <div class="card2">
+          <div class="hd"><div><h3>Reaction frequency spectrum <span class="tag tag-new">new</span></h3></div>
+            <span class="seg" id="ov-spec-scope"><button class="active" data-scope="eco">E. coli</button><button data-scope="lacto">Lacto</button></span></div>
+          <div class="sub">How many genomes carry each reaction — the classic U-shaped pangenome curve. A tall <b>core</b> peak on the right, a <b>cloud</b> of rare reactions on the left.</div>
+          <div id="ov-spectrum" class="plot" style="height:300px"></div>
+          <div class="caption" id="ov-spec-cap"></div>
+        </div>
+      </div>
+      <div class="card2">
+        <div class="hd"><div><h3>Collection at a glance</h3></div></div>
+        <div class="sub">Species composition and per-model reaction richness across the two collections.</div>
+        <div class="grid2">
+          <div><div style="font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px">Models per species (top 14)</div>
+            <div id="ov-species-bar" class="plot" style="height:340px"></div></div>
+          <div><div style="font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:6px">Reactions per model, by collection</div>
+            <div id="ov-rxn-dist" style="position:relative;height:340px"><canvas id="ov-rxn-canvas"></canvas></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= LANDSCAPE ========================= -->
+    <section class="view" id="view-landscape">
+      <div class="view-head"><h1>Metabolic landscape embedding</h1>
+        <p>Classical multidimensional scaling (PCoA) of reaction-content distances. Each point is positioned so that metabolic dissimilarity ≈ 2-D distance. Zoom, pan and lasso to explore; hover any point for its identity.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl"><label>Unit</label><span class="seg" id="ls-unit"><button class="active" data-unit="species">Species means (27)</button><button data-unit="models">Sampled models</button></span></div>
+          <div class="ctl" id="ls-n-wrap" style="display:none"><label>Sample size</label>
+            <select id="ls-n"><option value="300">300 models</option><option value="600" selected>600 models</option><option value="1000">1000 models</option></select></div>
+          <div class="ctl"><label>Colour by</label><span class="seg" id="ls-color"><button class="active" data-c="dataset">Collection</button><button data-c="genus">Genus</button></span></div>
+          <div class="ctl"><label>Distance</label><span class="seg" id="ls-dist"><button class="active" data-d="jaccard">Jaccard</button><button data-d="cosine">Cosine</button></span></div>
+          <div class="ctl" style="margin-left:auto"><label>&nbsp;</label><button class="btn2 btn-primary2" id="ls-run">Recompute</button></div>
+        </div>
+        <div class="lgnd" id="ls-legend" style="margin:6px 0 2px"></div>
+        <div id="ls-plot" class="plot" style="height:560px"></div>
+        <div class="caption" id="ls-cap">Look for: whether models of the same species land together (metabolic cohesion) and how far <i>E. coli</i> sits from the Lactobacillaceae — a visual read of the 776/2,753 shared-reaction overlap.</div>
+      </div>
+    </section>
+
+    <!-- ========================= OPENNESS ========================= -->
+    <section class="view" id="view-openness">
+      <div class="view-head"><h1>Pangenome openness</h1>
+        <p>Is the metabolic pangenome <i>open</i> (new reactions keep appearing as you add genomes) or <i>closed</i>? Two classic lenses: the reaction-frequency spectrum, and rarefaction/accumulation curves with a Heaps'-law openness exponent.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl"><label>Scope</label><select id="op-scope"></select></div>
+          <div class="ctl"><label>Feature</label><span class="seg" id="op-metric"><button class="active" data-m="reactions">Reactions</button><button data-m="metabolites">Metabolites</button></span></div>
+          <div class="ctl" style="margin-left:auto"><label>&nbsp;</label><button class="btn2 btn-primary2" id="op-run">Compute</button></div>
+        </div>
+        <div class="statgrid" id="op-stats"></div>
+      </div>
+      <div class="grid2">
+        <div class="card2">
+          <div class="hd"><div><h3>Reaction frequency spectrum</h3></div></div>
+          <div class="sub">Distribution of how many genomes carry each feature. Core (right) vs cloud (left).</div>
+          <div id="op-spectrum" class="plot" style="height:330px"></div>
+          <div class="caption" id="op-spec-cap"></div>
+        </div>
+        <div class="card2">
+          <div class="hd"><div><h3>Rarefaction / accumulation <span class="tag tag-new">new</span></h3></div></div>
+          <div class="sub">Pan (union) and core (intersection) feature counts as genomes are added, averaged over random permutations. Heaps' law fit gives the openness exponent γ.</div>
+          <div id="op-rarefaction" class="plot" style="height:330px"></div>
+          <div class="caption" id="op-rare-cap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= DISTANCE ========================= -->
+    <section class="view" id="view-distance">
+      <div class="view-head"><h1>Species × species metabolic distance</h1>
+        <p>A clustered matrix of all 27 organisms compared by the cosine distance of their mean reaction-presence vectors. Complements the dendrogram: blocks of low distance are metabolically coherent clades.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl"><label>Feature</label><span class="seg" id="dm-metric"><button class="active" data-m="reactions">Reactions</button><button data-m="metabolites">Metabolites</button></span></div>
+          <div class="ctl"><label>Distance</label><span class="seg" id="dm-dist"><button class="active" data-d="cosine">1 − cosine</button><button data-d="jaccard">Jaccard</button></span></div>
+          <div class="ctl" style="margin-left:auto"><label>&nbsp;</label><button class="btn2 btn-primary2" id="dm-run">Rebuild</button></div>
+        </div>
+        <div id="dm-plot" class="plot" style="height:640px"></div>
+        <div class="caption">Look for: a dark (near-zero-distance) block spanning the Lactobacillaceae genera, with <i>E. coli</i> as a bright, distant row/column — the metabolic outgroup. Ordering is average-linkage hierarchical clustering.</div>
+      </div>
+    </section>
+
+    <!-- ========================= TREE ========================= -->
+    <section class="view" id="view-tree">
+      <div class="view-head"><h1>Species tree</h1>
+        <p>Toggle between NCBI-style taxonomy and a dendrogram built purely from metabolic (reaction) content. The content tree recovers the genera and places <i>E. coli</i> as an outgroup — click any species to load its GEMs into the clustermap.</p></div>
+      <div class="card2">
+        <div class="ctl-row" style="margin-bottom:10px">
+          <div class="ctl"><label>Tree source</label><span class="seg" id="t-mode"><button class="active" data-mode="taxonomy">NCBI taxonomy</button><button data-mode="content">Metabolic content</button></span></div>
+        </div>
+        <div id="tree-holder" style="overflow:auto"></div>
+      </div>
+    </section>
+
+    <!-- ========================= COMPARE MODELS ========================= -->
+    <section class="view" id="view-models">
+      <div class="view-head"><h1>Compare specific models</h1>
+        <p>Add two or more models to contrast their reaction / metabolite repertoires — pairwise Jaccard, an UpSet-style intersection plot, and a differential feature table.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl" style="flex:1; min-width:280px"><label>Search &amp; add a model</label>
+            <input id="m-search" list="m-list" placeholder="e.g. GCF_000014425.1, Lactobacillus gasseri, or 562.70503" style="width:100%">
+            <datalist id="m-list"></datalist></div>
+          <div class="ctl"><label>&nbsp;</label><button class="btn2 btn-primary2" id="m-add">Add</button></div>
+          <div class="ctl"><label>Feature</label><span class="seg" id="m-metric"><button class="active" data-metric="reactions">Reactions</button><button data-metric="metabolites">Metabolites</button></span></div>
+        </div>
+        <div style="margin-top:10px" id="m-chips"></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn2 btn-ghost btn-xs" id="m-examples">Load an example</button>
+          <button class="btn2 btn-ghost btn-xs" id="m-clear">Clear all</button>
         </div>
       </div>
       <div id="m-results" style="display:none">
-        <div class="panel">
+        <div class="card2">
           <div class="statgrid" id="m-stats"></div>
-          <div class="row g-3">
-            <div class="col-lg-5">
-              <h5 style="font-size:0.9rem">Pairwise similarity (Jaccard)</h5>
-              <div id="m-jaccard"></div>
-            </div>
-            <div class="col-lg-7">
-              <h5 style="font-size:0.9rem">Set breakdown</h5>
-              <div style="position:relative;height:230px"><canvas id="m-setchart"></canvas></div>
-            </div>
+          <div class="grid2">
+            <div><div style="font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px">Pairwise similarity (Jaccard %)</div>
+              <div id="m-jaccard" style="overflow:auto"></div></div>
+            <div><div style="font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px">Shared vs unique <span class="m-metric-label">reactions</span> per model</div>
+              <div style="position:relative;height:250px"><canvas id="m-setchart"></canvas></div></div>
           </div>
         </div>
-        <div class="panel">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0">Differential <span class="m-metric-label">reactions</span></h5>
-            <button class="btn btn-outline-secondary btn-mini" id="m-csv">Download CSV</button>
-          </div>
+        <div class="card2" id="m-upset-card">
+          <div class="hd"><div><h3>Intersection profile — UpSet <span class="tag tag-new">new</span></h3></div></div>
+          <div class="sub">Each bar is the number of <span class="m-metric-label">reactions</span> present in <b>exactly</b> the highlighted combination of models. A modern replacement for a Venn diagram (up to 6 models).</div>
+          <div id="m-upset" style="overflow:auto"></div>
+          <div class="caption">Look for: a tall left-most bar (the core, present in all) and the pattern of model-exclusive sets on the right.</div>
+        </div>
+        <div class="card2">
+          <div class="hd"><div><h3>Differential <span class="m-metric-label">reactions</span></h3></div>
+            <button class="btn2 btn-ghost btn-xs" id="m-csv">Download CSV</button></div>
           <div class="sub">Features present in some but not all selected models. ✓ = present.</div>
-          <div style="max-height:520px;overflow:auto"><table id="m-diff" class="table table-sm mini"></table></div>
+          <div class="tbl-scroll"><table id="m-diff" class="mini"></table></div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ============ TAB: COMPARE GROUPS ============ -->
-    <div class="tabpane" id="tab-groups" style="display:none">
-      <div class="panel">
-        <h5>Compare groups of GEMs</h5>
-        <div class="sub">Define two cohorts by species or metadata, then contrast their reaction / metabolite repertoires.</div>
-        <div class="row g-3">
-          <div class="col-md-6"><div class="grp-builder A" id="grpA"></div></div>
-          <div class="col-md-6"><div class="grp-builder B" id="grpB"></div></div>
+    <!-- ========================= COMPARE GROUPS ========================= -->
+    <section class="view" id="view-groups">
+      <div class="view-head"><h1>Compare groups of GEMs</h1>
+        <p>Define two cohorts by species or metadata, then contrast their repertoires — distributions, overlap, a differential-prevalence table, and a statistical volcano plot.</p></div>
+      <div class="card2">
+        <div class="grid2">
+          <div id="grpA"></div><div id="grpB"></div>
         </div>
-        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-          <span class="metric-toggle" id="g-metric">
-            <button class="active" data-metric="reactions">Reactions</button>
-            <button data-metric="metabolites">Metabolites</button>
-          </span>
-          <button class="btn btn-primary btn-sm" id="g-run">Compare groups</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:10px">
+          <span class="seg" id="g-metric"><button class="active" data-metric="reactions">Reactions</button><button data-metric="metabolites">Metabolites</button></span>
+          <button class="btn2 btn-primary2" id="g-run">Compare groups</button>
         </div>
       </div>
       <div id="g-results" style="display:none">
-        <div class="panel">
+        <div class="card2">
           <div class="statgrid" id="g-stats"></div>
-          <div class="row g-3">
-            <div class="col-lg-6">
-              <h5 style="font-size:0.9rem"><span class="g-metric-label">Reactions</span> per model</h5>
-              <div style="position:relative;height:250px"><canvas id="g-dist"></canvas></div>
-            </div>
-            <div class="col-lg-6">
-              <h5 style="font-size:0.9rem">Repertoire overlap</h5>
-              <div style="position:relative;height:250px"><canvas id="g-overlap"></canvas></div>
-            </div>
+          <div class="grid2">
+            <div><div style="font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px"><span class="g-metric-label">Reactions</span> per model</div>
+              <div style="position:relative;height:260px"><canvas id="g-dist"></canvas></div></div>
+            <div><div style="font-size:12.5px;font-weight:700;color:var(--ink-2);margin-bottom:8px">Repertoire overlap (pan)</div>
+              <div style="position:relative;height:260px"><canvas id="g-overlap"></canvas></div></div>
           </div>
         </div>
-        <div class="panel">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0">Differential prevalence</h5>
-            <button class="btn btn-outline-secondary btn-mini" id="g-csv">Download CSV</button>
-          </div>
-          <div class="sub">Features ranked by prevalence difference (|% in A − % in B|). Enriched in <span class="ds-eco" id="gA-name">A</span> or <span class="ds-lacto" id="gB-name">B</span>.</div>
-          <div style="max-height:520px;overflow:auto"><table id="g-diff" class="table table-sm mini"></table></div>
+        <div class="card2">
+          <div class="hd"><div><h3>Differential volcano <span class="tag tag-new">new</span></h3></div></div>
+          <div class="sub">Per feature: χ² test with Yates' continuity correction on a 2×2 present/absent × A/B table. x = Δprevalence (A − B); y = −log₁₀ p. Points far up &amp; to the side are strongly and significantly enriched.</div>
+          <div id="g-volcano" class="plot" style="height:440px"></div>
+          <div class="caption" id="g-volcano-cap">Blue = enriched in A, orange = enriched in B. Dashed line = p&nbsp;=&nbsp;0.05 (Bonferroni-adjustable). Hover a point for the reaction, prevalences and test statistic.</div>
+        </div>
+        <div class="card2">
+          <div class="hd"><div><h3>Differential prevalence</h3></div>
+            <button class="btn2 btn-ghost btn-xs" id="g-csv">Download CSV</button></div>
+          <div class="sub">Features ranked by |% in A − % in B|. Enriched in <span style="color:var(--eco);font-weight:700" id="gA-name">A</span> or <span style="color:var(--lacto);font-weight:700" id="gB-name">B</span>.</div>
+          <div class="tbl-scroll"><table id="g-diff" class="mini"></table></div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ============ TAB: CLUSTERMAP ============ -->
-    <div class="tabpane" id="tab-cluster" style="display:none">
-      <div class="panel">
-        <h5>Presence / absence clustermap</h5>
-        <div class="sub">Pick a set of models; rows are hierarchically clustered by shared content over the most variable features.</div>
-        <div class="row g-2 align-items-end">
-          <div class="col-md-4">
-            <label style="font-size:0.74rem;font-weight:600;color:#556">Model set</label>
-            <select id="c-source" class="form-select form-select-sm">
-              <option value="species">A species…</option>
-              <option value="groupA">Group A (from Compare groups)</option>
-              <option value="groupB">Group B (from Compare groups)</option>
-              <option value="selected">The models from Compare models</option>
-            </select>
-          </div>
-          <div class="col-md-4" id="c-species-wrap">
-            <label style="font-size:0.74rem;font-weight:600;color:#556">Species</label>
-            <select id="c-species" class="form-select form-select-sm"></select>
-          </div>
-          <div class="col-md-2">
-            <label style="font-size:0.74rem;font-weight:600;color:#556">Metric</label>
-            <span class="metric-toggle" id="c-metric" style="display:flex">
-              <button class="active" data-metric="reactions">Rxns</button>
-              <button data-metric="metabolites">Mets</button>
-            </span>
-          </div>
-          <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" id="c-run">Build</button></div>
+    <!-- ========================= CLUSTERMAP ========================= -->
+    <section class="view" id="view-cluster">
+      <div class="view-head"><h1>Presence / absence clustermap <span class="tag tag-up" style="vertical-align:middle">upgraded</span></h1>
+        <p>A seaborn-style clustermap: rows (models) and columns (features) are hierarchically clustered, with dendrograms on both margins and a collection/species annotation strip. Filled cell = feature present.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl"><label>Model set</label>
+            <select id="c-source"><option value="species">A species…</option><option value="groupA">Group A (from Compare groups)</option><option value="groupB">Group B (from Compare groups)</option><option value="selected">Models from Compare models</option></select></div>
+          <div class="ctl" id="c-species-wrap"><label>Species</label><select id="c-species"></select></div>
+          <div class="ctl"><label>Feature</label><span class="seg" id="c-metric"><button class="active" data-metric="reactions">Reactions</button><button data-metric="metabolites">Metabolites</button></span></div>
+          <div class="ctl"><label>Column tree</label><span class="seg" id="c-coltree"><button class="active" data-v="1">On</button><button data-v="0">Off</button></span></div>
+          <div class="ctl" style="margin-left:auto"><label>&nbsp;</label><button class="btn2 btn-primary2" id="c-run">Build</button></div>
         </div>
-        <div class="sub mt-2" id="c-caps">Caps: up to 120 models &amp; 140 most-variable features for readability.</div>
+        <div class="sub" id="c-caps" style="margin-top:8px">Caps: up to 120 models × 140 most-variable features for readability.</div>
       </div>
-      <div class="panel" id="c-results" style="display:none">
-        <div id="c-legend" class="mb-2" style="font-size:0.78rem;color:#667"></div>
-        <div class="heat-wrap"><canvas id="cluster-canvas"></canvas></div>
+      <div class="card2" id="c-results" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+          <div class="lgnd" id="c-legend"></div>
+          <button class="btn2 btn-ghost btn-xs" id="c-png">Download PNG</button>
+        </div>
+        <div class="heat-wrap"><canvas id="cluster-canvas" class="crisp"></canvas></div>
+        <div class="caption" id="c-caption"></div>
       </div>
-    </div>
+    </section>
 
-    <!-- ============ TAB: SPECIES TREE ============ -->
-    <div class="tabpane" id="tab-tree" style="display:none">
-      <div class="panel">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <h5 class="mb-0">Species tree</h5>
-            <div class="sub mb-0">Click a species to load its GEMs into the tools. Toggle between NCBI taxonomy and a tree built from metabolic (reaction) content.</div>
-          </div>
-          <span class="metric-toggle" id="t-mode">
-            <button class="active" data-mode="taxonomy">Taxonomy</button>
-            <button data-mode="content">Metabolic content</button>
-          </span>
-        </div>
-        <div id="tree-holder" class="mt-2" style="overflow:auto"></div>
-      </div>
-    </div>
-  </div>
+  </main>
 </div>
 
-<footer>
-  panGEMs Analytics &middot; <a href="index.html">GEM browser</a> &middot;
-  <a href="https://github.com/omidard/panGEMs" target="_blank">source</a>
-</footer>
+<footer>panGEMs Analytics · <a href="index.html">GEM browser</a> · <a href="https://github.com/omidard/panGEMs" target="_blank" rel="noopener">source</a> · all computation runs client-side in your browser</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
 <script src="assets/analytics.js"></script>
 </body>
 </html>
