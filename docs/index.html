@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>panGEMs Browser - E. coli & Lactobacillaceae Pangenome GEM Explorer</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<style>
+  :root { --primary: #2c6fbb; --accent: #e8f0fe; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f7fa; }
+  .hero {
+    background: linear-gradient(135deg, #1a3a5c 0%, #2c6fbb 55%, #7a3fb8 100%);
+    color: white; padding: 2rem 0; margin-bottom: 1.5rem;
+  }
+  .hero h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .hero p { opacity: 0.92; margin-bottom: 0; }
+  .stat-card {
+    background: white; border-radius: 8px; padding: 1rem 1.2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center;
+  }
+  .stat-card .num { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+  .stat-card .label { font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .usage-card { border-top: 3px solid #1a7f4b; }
+  .usage-card .num { color: #1a7f4b; }
+  .usage-card .label { display: flex; align-items: center; justify-content: center; gap: 0.3rem; }
+  .usage-note { font-size: 0.72rem; color: #999; margin: -0.4rem 0 0.6rem; }
+  .filter-row { background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .filter-row select { font-size: 0.85rem; }
+  .table-wrap { background: white; border-radius: 8px; padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow-x: auto; }
+  table.dataTable { font-size: 0.82rem; }
+  table.dataTable thead th { background: var(--accent); font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+  table.dataTable tbody td { vertical-align: middle; max-width: 220px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  table.dataTable tbody tr.selected { background-color: #d4e6f9 !important; }
+  .btn-zenodo { background: #1d6ec1; color: white; border: none; }
+  .btn-zenodo:hover { background: #155a9e; color: white; }
+  .badge-phylo { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+  .org-name { font-style: italic; }
+  #loading { text-align: center; padding: 3rem; }
+  .spinner-border { width: 2rem; height: 2rem; }
+  footer { text-align: center; padding: 1.5rem; color: #888; font-size: 0.8rem; }
+  a.gem-link { font-family: monospace; font-size: 0.82rem; }
+  /* Download modal */
+  .dl-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dl-modal {
+    background: white; border-radius: 12px; padding: 2rem; width: 520px;
+    max-width: 90vw; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .dl-modal h5 { margin-bottom: 1rem; }
+  .dl-progress { height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; margin: 1rem 0; }
+  .dl-progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; border-radius: 4px; }
+  .dl-status { font-size: 0.85rem; color: #666; }
+  .dl-error { color: #dc3545; font-size: 0.85rem; }
+  .dl-fallback { background: #f8f9fa; border-radius: 6px; padding: 0.8rem; margin-top: 0.8rem; font-size: 0.82rem; }
+  .dl-fallback code { display: block; margin-top: 0.4rem; background: #e9ecef; padding: 0.5rem; border-radius: 4px;
+    word-break: break-all; font-size: 0.78rem; }
+  .dl-source { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    border: 1px solid #e3e8ef; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.7rem; }
+  .dl-source .meta { font-size: 0.82rem; color: #555; }
+  .dl-source .meta strong { color: #1a3a5c; }
+  /* GEM detail viewer */
+  .gem-detail-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6); z-index: 10000; overflow-y: auto;
+  }
+  .gem-detail {
+    background: white; border-radius: 12px; margin: 2rem auto; padding: 0;
+    max-width: 1100px; width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    max-height: 90vh; display: flex; flex-direction: column;
+  }
+  .gem-detail-header {
+    padding: 1.2rem 1.5rem; border-bottom: 1px solid #eee;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .gem-detail-header h4 { margin: 0; font-size: 1.1rem; }
+  .gem-detail-body { padding: 1rem 1.5rem; overflow-y: auto; flex: 1; }
+  .gem-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem; }
+  .gem-stat-item {
+    background: var(--accent); border-radius: 8px; padding: 0.8rem; text-align: center;
+  }
+  .gem-stat-item .val { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+  .gem-stat-item .lbl { font-size: 0.72rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .gem-tabs { border-bottom: 2px solid #eee; margin-bottom: 1rem; display: flex; gap: 0; }
+  .gem-tab {
+    padding: 0.6rem 1.2rem; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    color: #888; border-bottom: 2px solid transparent; margin-bottom: -2px;
+  }
+  .gem-tab:hover { color: #444; }
+  .gem-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .gem-tab-content { display: none; }
+  .gem-tab-content.active { display: block; }
+  .gem-detail table { font-size: 0.8rem; }
+  .gem-detail table thead th { font-size: 0.72rem; text-transform: uppercase; background: #f8f9fa; position: sticky; top: 0; }
+  .gem-detail .dataTables_wrapper { font-size: 0.8rem; }
+  .gem-loading { text-align: center; padding: 3rem; color: #888; }
+  /* Column toggle panel */
+  .col-toggle-panel {
+    background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: none;
+  }
+  .col-toggle-panel.show { display: block; }
+  .col-toggle-panel h6 { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; color: #444; }
+  .col-group { margin-bottom: 0.8rem; }
+  .col-group-title { font-size: 0.75rem; font-weight: 600; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.3rem; border-bottom: 1px solid #eee; padding-bottom: 2px; }
+  .col-toggle-panel label {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.8rem; margin-right: 1rem; margin-bottom: 4px; cursor: pointer; white-space: nowrap;
+  }
+  .col-toggle-panel input[type=checkbox] { accent-color: var(--primary); }
+  .btn-columns { border: 1px solid #ccc; background: white; font-size: 0.82rem; }
+  .btn-columns:hover { background: #f0f0f0; }
+  .btn-columns.active { background: var(--accent); border-color: var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="container">
+    <h1>panGEMs Browser</h1>
+    <p>Interactive explorer for 4,659 strain-specific genome-scale metabolic models (GEMs) &mdash; 2,313 <em>Escherichia coli</em> (EcopanGEM) and 2,346 <em>Lactobacillaceae</em> across 26 species (LactoPanGEM)</p>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Stats -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="num" id="stat-total">-</div><div class="label">GEMs Available</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="num" id="stat-species">-</div><div class="label">Species</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="num" id="stat-genera">-</div><div class="label">Genera</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card"><div class="num" id="stat-countries">-</div><div class="label">Countries</div></div></div>
+  </div>
+
+  <!-- Usage / dissemination stats (GoatCounter) -->
+  <div class="row g-3" id="usage-stats-row">
+    <div class="col-6 col-md-3"><div class="stat-card usage-card"><div class="num" id="stat-views">-</div><div class="label"><span>&#128065;</span> Page Views</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card usage-card"><div class="num" id="stat-downloads">-</div><div class="label"><span>&#11015;</span> GEM Downloads</div></div></div>
+  </div>
+  <div class="usage-note">Live usage since launch &middot; updated hourly</div>
+
+  <!-- Filters -->
+  <div class="filter-row">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label fw-semibold" style="font-size:0.8rem">Dataset</label>
+        <select id="filter-dataset" class="form-select form-select-sm"><option value="">All</option></select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold" style="font-size:0.8rem">Organism (species)</label>
+        <select id="filter-organism" class="form-select form-select-sm"><option value="">All</option></select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold" style="font-size:0.8rem">Isolation Source</label>
+        <select id="filter-source" class="form-select form-select-sm"><option value="">All</option></select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold" style="font-size:0.8rem">Country</label>
+        <select id="filter-country" class="form-select form-select-sm"><option value="">All</option></select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold" style="font-size:0.8rem">Host</label>
+        <select id="filter-host" class="form-select form-select-sm"><option value="">All</option></select>
+      </div>
+      <div class="col-md-1 d-flex align-items-end gap-1">
+        <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearFilters()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-sm btn-columns" id="btn-toggle-cols" onclick="toggleColPanel()">
+        Columns <span id="col-count-badge" class="badge bg-primary ms-1">13</span>
+      </button>
+      <span class="text-muted" style="font-size:0.85rem">
+        <strong id="sel-count">0</strong> selected
+      </span>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-zenodo" onclick="downloadAll()">
+        Download All GEMs
+      </button>
+      <button class="btn btn-sm btn-primary" id="btn-download-sel" onclick="downloadSelected()" disabled>
+        Download Selected GEMs
+      </button>
+      <button class="btn btn-sm btn-outline-primary" id="btn-copy" onclick="copySelected()" disabled>
+        Copy Filenames
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="exportCSV()">
+        Export Table (CSV)
+      </button>
+    </div>
+  </div>
+
+  <!-- Column toggle panel -->
+  <div class="col-toggle-panel" id="col-panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="mb-0">Show/Hide Columns</h6>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" onclick="showAllCols()">Show All</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetCols()">Reset to Default</button>
+      </div>
+    </div>
+    <div id="col-checkboxes"></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div id="loading">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 text-muted">Loading GEM metadata...</p>
+    </div>
+    <table id="gem-table" class="table table-striped table-hover" style="width:100%; display:none">
+      <thead><tr id="header-row"></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Help -->
+  <div class="mt-3 mb-4 text-muted" style="font-size:0.82rem">
+    <strong>How to use:</strong> Filter by <strong>Dataset</strong> (EcopanGEM / LactoPanGEM) or <strong>Organism</strong>, or search the table.
+    Click a <strong>GEM File</strong> to inspect its reactions, metabolites and genes in the browser.
+    Select rows and use <strong>Download Selected GEMs</strong> to fetch just those models (packaged client-side, no server), or <strong>Download All GEMs</strong> for the full archives.
+    Every model is a COBRApy-compatible JSON.
+  </div>
+</div>
+
+<footer>
+  <p>
+    <strong>E. coli:</strong> <a href="https://github.com/omidard/EcopanGEM" target="_blank">EcopanGEM</a>
+    &middot; <a href="https://zenodo.org/records/17581962" target="_blank">Zenodo 10.5281/zenodo.17581962</a>
+    &middot; Ardalani <em>et al.</em>, "Annotating the Pangenome Reveals the Diversity in the Genetic Basis for Metabolic Enzymes"
+    <br>
+    <strong>Lactobacillaceae:</strong> <a href="https://github.com/omidard/LactoPanGEM" target="_blank">LactoPanGEM</a>
+    &middot; Ardalani <em>et al.</em>, "Pangenome-Scale Reconstruction of Lactobacillaceae Metabolism", <em>mSystems</em> (2024) &middot; metadata from NCBI Datasets
+    <br>
+    Code: <a href="https://github.com/omidard/panGEMs" target="_blank">github.com/omidard/panGEMs</a>
+  </p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Full-archive sources (per dataset)
+const ECO_ZENODO = 'https://zenodo.org/records/17581962/files/Ecoli_GEMs_for_Complete_genomes.zip?download=1';
+const LACTO_REPO = 'https://github.com/omidard/LactoPanGEM';
+// Batch zips served from same origin (docs/gems/) — no CORS issues
+const BATCH_URL_BASE = 'gems/gems_batch_';
+
+// ── Usage analytics (GoatCounter) ───────────────────────────────────────────
+// Dashboard: https://<GC_CODE>.goatcounter.com  — enable "Allow adding visitor
+// counts on your website" in GoatCounter → Settings for the on-page numbers.
+const GC_CODE = 'pangems';
+const GC_DOWNLOAD_EVENT = 'download';
+
+(function loadGoatCounter() {
+  if (!GC_CODE) return;
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = '//gc.zgo.at/count.js';
+  s.setAttribute('data-goatcounter', 'https://' + GC_CODE + '.goatcounter.com/count');
+  document.head.appendChild(s);
+})();
+
+function gcEvent(path, title) {
+  try {
+    if (window.goatcounter && typeof window.goatcounter.count === 'function') {
+      window.goatcounter.count({ path: path, title: title || path, event: true });
+    }
+  } catch (e) { /* analytics must never break the app */ }
+}
+
+async function gcShowCount(elId, counterPath) {
+  const el = document.getElementById(elId);
+  if (!el || !GC_CODE) return;
+  const url = 'https://' + GC_CODE + '.goatcounter.com/counter/' + counterPath + '.json';
+  try {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (r.ok) { const j = await r.json(); el.textContent = (j && j.count != null) ? j.count : '0'; }
+    else { el.textContent = '0'; }
+  } catch (e) { el.textContent = '-'; }
+}
+
+function loadUsageCounts() {
+  gcShowCount('stat-views', 'TOTAL');
+  gcShowCount('stat-downloads', encodeURIComponent(GC_DOWNLOAD_EVENT));
+}
+window.addEventListener('DOMContentLoaded', loadUsageCounts);
+// ────────────────────────────────────────────────────────────────────────────
+
+let table;
+let gemBatchMap = {};  // gem_file -> batch number
+
+const DATASET_COLORS = { 'EcopanGEM': '#2c6fbb', 'LactoPanGEM': '#7a3fb8' };
+function datasetBadge(v) {
+  if (!v) return '';
+  const c = DATASET_COLORS[v] || '#888';
+  return `<span class="badge-phylo" style="background:${c}22;color:${c};border:1px solid ${c}44">${v}</span>`;
+}
+function orgRender(v) { return v ? `<span class="org-name">${v}</span>` : ''; }
+
+// Column definitions: key, display name, group, visible by default, render function
+const COLUMNS = [
+  // -- Core (always visible by default) --
+  { key: 'gem_file',              label: 'GEM File',            group: 'Core',        default: true,  render: d => `<a href="#" class="gem-link" onclick="openGemDetail('${d}');return false" title="View reactions, metabolites & genes">${d}</a>` },
+  { key: 'dataset',               label: 'Dataset',             group: 'Core',        default: true,  render: datasetBadge },
+  { key: 'organism',              label: 'Organism (species)',  group: 'Core',        default: true,  render: orgRender },
+  { key: 'assembly_accession',    label: 'Assembly',            group: 'Core',        default: true,  render: d => {
+    if (!d) return '';
+    if (d.startsWith('GCA_') || d.startsWith('GCF_'))
+      return `<a href="https://www.ncbi.nlm.nih.gov/datasets/genome/${d}/" target="_blank">${d}</a>`;
+    return d;
+  }},
+  { key: 'genome_id',             label: 'Genome ID',           group: 'Core',        default: false },
+  { key: 'genome_name',           label: 'Genome Name',         group: 'Core',        default: false },
+  { key: 'strain',                label: 'Strain',              group: 'Core',        default: true },
+  { key: 'gtdb_species',          label: 'GTDB Species',        group: 'Core',        default: false },
+  { key: 'serovar',               label: 'Serovar',             group: 'Core',        default: false },
+  // -- Classification (E. coli-specific fields are blank for Lactobacillaceae) --
+  { key: 'phylogroup',            label: 'Phylogroup',          group: 'Classification', default: false, render: phyloBadge },
+  { key: 'MLST',                  label: 'MLST',                group: 'Classification', default: false },
+  { key: 'mash_cluster',          label: 'MASH Cluster',        group: 'Classification', default: false },
+  { key: 'organism_name',         label: 'Full Organism Name',  group: 'Classification', default: false },
+  { key: 'taxon_id',              label: 'Taxon ID',            group: 'Classification', default: false },
+  // -- Isolation & Host --
+  { key: 'isolation_source',      label: 'Isolation Source',    group: 'Isolation & Host', default: true },
+  { key: 'isolation_country',     label: 'Country',             group: 'Isolation & Host', default: true },
+  { key: 'geographic_location',   label: 'Location',            group: 'Isolation & Host', default: false },
+  { key: 'collection_date',       label: 'Collection Date',     group: 'Isolation & Host', default: false },
+  { key: 'host_name',             label: 'Host',                group: 'Isolation & Host', default: true },
+  { key: 'host_health',           label: 'Host Health',         group: 'Isolation & Host', default: false },
+  { key: 'body_sample_site',      label: 'Body Site',           group: 'Isolation & Host', default: false },
+  { key: 'disease',               label: 'Disease',             group: 'Isolation & Host', default: false },
+  // -- Model Stats --
+  { key: 'n_reactions',            label: 'Reactions',            group: 'Model Stats',  default: true,  render: d => d ? Number(d).toLocaleString() : '' },
+  { key: 'n_metabolites',          label: 'Metabolites',          group: 'Model Stats',  default: true,  render: d => d ? Number(d).toLocaleString() : '' },
+  { key: 'n_genes',                label: 'Genes',                group: 'Model Stats',  default: true,  render: d => d ? Number(d).toLocaleString() : '' },
+  { key: 'n_exchange',             label: 'Exchange Rxns',        group: 'Model Stats',  default: false, render: d => d ? Number(d).toLocaleString() : '' },
+  { key: 'n_with_gpr',             label: 'Rxns with GPR',        group: 'Model Stats',  default: false, render: d => d ? Number(d).toLocaleString() : '' },
+  // -- Genome Stats --
+  { key: 'genome_length',         label: 'Length (Mb)',          group: 'Genome Stats', default: false,  render: d => d ? (d / 1e6).toFixed(2) : '' },
+  { key: 'gc_content',            label: 'GC%',                 group: 'Genome Stats', default: false,  render: d => d ? Number(d).toFixed(1) : '' },
+  { key: 'contigs',               label: 'Contigs',             group: 'Genome Stats', default: false,  render: d => d ? Math.round(d) : '' },
+  { key: 'chromosomes',           label: 'Chromosomes',         group: 'Genome Stats', default: false, render: d => d ? Math.round(d) : '' },
+  { key: 'plasmids',              label: 'Plasmids',            group: 'Genome Stats', default: false, render: d => d ? Math.round(d) : '' },
+  { key: 'genome_status',         label: 'Assembly Level',      group: 'Genome Stats', default: false },
+  // -- Sequencing --
+  { key: 'sequencing_platform',   label: 'Platform',            group: 'Sequencing',  default: false },
+  { key: 'assembly_method',       label: 'Assembly Method',     group: 'Sequencing',  default: false },
+  { key: 'sequencing_centers',    label: 'Seq. Center / Submitter', group: 'Sequencing',  default: false },
+  { key: 'completion_date',       label: 'Release Date',        group: 'Sequencing',  default: false },
+  // -- Accessions --
+  { key: 'bioproject_accession',  label: 'BioProject',          group: 'Accessions',  default: false },
+  { key: 'biosample_accession',   label: 'BioSample',           group: 'Accessions',  default: false },
+  { key: 'genbank_accessions',    label: 'GenBank',             group: 'Accessions',  default: false },
+  { key: 'refseq_accessions',     label: 'RefSeq',              group: 'Accessions',  default: false },
+  // -- Other --
+  { key: 'culture_collection',    label: 'Culture Collection',  group: 'Other',       default: false },
+  { key: 'comments',              label: 'Comments',             group: 'Other',       default: false }
+];
+
+const DEFAULT_VISIBLE = new Set(COLUMNS.filter(c => c.default).map(c => c.key));
+const PHYLO_COLORS = {
+  'A': '#e41a1c', 'B1': '#377eb8', 'B2': '#4daf4a', 'C': '#984ea3',
+  'D': '#ff7f00', 'E': '#a65628', 'F': '#f781bf', 'G': '#999999',
+  'U': '#666666', 'cryptic': '#333333'
+};
+
+function phyloBadge(v) {
+  if (!v) return '';
+  const c = PHYLO_COLORS[v] || '#888';
+  return `<span class="badge-phylo" style="background:${c}22;color:${c};border:1px solid ${c}44">${v}</span>`;
+}
+function truncate(s, n) { if (!s) return ''; s = String(s); return s.length > n ? s.substring(0, n) + '...' : s; }
+function populateFilter(id, values) {
+  const sel = document.getElementById(id);
+  [...values].filter(v => v).sort().forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = truncate(v, 44);
+    sel.appendChild(opt);
+  });
+}
+function clearFilters() {
+  document.querySelectorAll('.filter-row select').forEach(s => s.value = '');
+  table.columns().search('').draw();
+}
+
+// --- Download All: choose a dataset archive ---
+function downloadAll() {
+  gcEvent(GC_DOWNLOAD_EVENT, 'GEM download');
+  gcEvent('download-all-open', 'Open Download-All dialog');
+  closeDownloadModal();
+  const div = document.createElement('div');
+  div.className = 'dl-overlay';
+  div.id = 'dl-overlay';
+  div.innerHTML = `
+    <div class="dl-modal">
+      <h5>Download the full GEM archives</h5>
+      <p class="text-muted" style="font-size:0.85rem">panGEMs bundles two collections. Grab either full archive from its source repository, or select specific rows in the table and use <strong>Download Selected GEMs</strong> for a custom subset (packaged in your browser).</p>
+      <div class="dl-source">
+        <div class="meta"><strong>EcopanGEM</strong> &mdash; 2,313 <em>E. coli</em> GEMs (JSON)<br><span style="color:#888">Zenodo archive · 10.5281/zenodo.17581962</span></div>
+        <a class="btn btn-sm btn-zenodo" href="${ECO_ZENODO}" target="_blank" onclick="gcEvent('download-eco-all','Download all E. coli (Zenodo)')">Download</a>
+      </div>
+      <div class="dl-source">
+        <div class="meta"><strong>LactoPanGEM</strong> &mdash; 2,346 <em>Lactobacillaceae</em> GEMs (JSON + SBML)<br><span style="color:#888">Per-species zips in the source repository</span></div>
+        <a class="btn btn-sm btn-zenodo" href="${LACTO_REPO}" target="_blank" onclick="gcEvent('download-lacto-all','Download all Lacto (repo)')">Open repo</a>
+      </div>
+      <div class="mt-3 text-end">
+        <button class="btn btn-sm btn-outline-secondary" onclick="closeDownloadModal()">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  div.addEventListener('click', (e) => { if (e.target === div) closeDownloadModal(); });
+}
+
+function copySelected() {
+  const rows = table.rows({ selected: true }).data();
+  const fns = [];
+  for (let i = 0; i < rows.length; i++) fns.push(rows[i].gem_file);
+  navigator.clipboard.writeText(fns.join('\n')).then(() => {
+    const btn = document.getElementById('btn-copy');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied ' + fns.length + ' filenames!';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+function updateSelCount() {
+  const n = table.rows({ selected: true }).count();
+  document.getElementById('sel-count').textContent = n;
+  document.getElementById('btn-copy').disabled = n === 0;
+  document.getElementById('btn-download-sel').disabled = n === 0;
+}
+
+// --- Download selected GEMs (works across both datasets via the combined batch map) ---
+function getSelectedGemFiles() {
+  const rows = table.rows({ selected: true }).data();
+  const files = [];
+  for (let i = 0; i < rows.length; i++) files.push(rows[i].gem_file);
+  return files;
+}
+
+function closeDownloadModal() {
+  const el = document.getElementById('dl-overlay');
+  if (el) el.remove();
+}
+
+let dlAbort = null;
+
+function showDlModal(title, statusMsg) {
+  closeDownloadModal();
+  const div = document.createElement('div');
+  div.className = 'dl-overlay';
+  div.id = 'dl-overlay';
+  div.innerHTML = `
+    <div class="dl-modal">
+      <h5 id="dl-title">${title}</h5>
+      <div class="dl-progress"><div class="dl-progress-bar" id="dl-bar" style="width:0%"></div></div>
+      <div class="dl-status" id="dl-status">${statusMsg}</div>
+      <div id="dl-fallback-area" style="display:none"></div>
+      <div class="mt-3 text-end">
+        <button class="btn btn-sm btn-outline-secondary" id="dl-close-btn" onclick="cancelDl()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+function setDlProgress(pct, msg) {
+  const bar = document.getElementById('dl-bar');
+  const st = document.getElementById('dl-status');
+  if (bar) bar.style.width = pct + '%';
+  if (st) st.textContent = msg;
+}
+
+function cancelDl() {
+  if (dlAbort) dlAbort.abort();
+  closeDownloadModal();
+}
+
+function showDlFallback() {
+  const area = document.getElementById('dl-fallback-area');
+  if (!area) return;
+  area.style.display = 'block';
+  area.innerHTML = `
+    <div class="dl-fallback">
+      <strong>Tip:</strong> try selecting fewer models, or grab a full archive via
+      <strong>Download All GEMs</strong> (EcopanGEM on Zenodo, LactoPanGEM in its repo).
+    </div>`;
+  document.getElementById('dl-close-btn').textContent = 'Close';
+}
+
+async function downloadSelected() {
+  const gemFiles = getSelectedGemFiles();
+  if (gemFiles.length === 0) return;
+
+  dlAbort = new AbortController();
+
+  // Figure out which batch zips we need
+  const neededBatches = new Map(); // batch_num -> [gem_file, ...]
+  for (const gf of gemFiles) {
+    const batchNum = gemBatchMap[gf];
+    if (!batchNum) continue;
+    if (!neededBatches.has(batchNum)) neededBatches.set(batchNum, []);
+    neededBatches.get(batchNum).push(gf);
+  }
+
+  const batchNums = [...neededBatches.keys()].sort((a,b) => a-b);
+  const totalBatches = batchNums.length;
+
+  showDlModal(
+    `Downloading ${gemFiles.length} GEM(s)...`,
+    `Fetching ${totalBatches} batch file(s) from GitHub...`
+  );
+
+  try {
+    const outputZip = new JSZip();
+    let found = 0;
+
+    for (let bi = 0; bi < batchNums.length; bi++) {
+      const batchNum = batchNums[bi];
+      const wantedInBatch = new Set(neededBatches.get(batchNum));
+      const batchUrl = BATCH_URL_BASE + String(batchNum).padStart(2, '0') + '.zip';
+
+      setDlProgress(
+        Math.round((bi / totalBatches) * 70),
+        `Downloading batch ${bi + 1}/${totalBatches}...`
+      );
+
+      const resp = await fetch(batchUrl, { signal: dlAbort.signal });
+      if (!resp.ok) throw new Error(`Failed to download batch ${batchNum}: HTTP ${resp.status}`);
+
+      const batchBlob = await resp.blob();
+      const batchZip = await JSZip.loadAsync(await batchBlob.arrayBuffer());
+
+      for (const [path, entry] of Object.entries(batchZip.files)) {
+        if (entry.dir) continue;
+        const fname = path.split('/').pop();
+        if (wantedInBatch.has(fname)) {
+          outputZip.file(fname, await entry.async('uint8array'));
+          found++;
+          setDlProgress(
+            Math.round(((bi + 0.5) / totalBatches) * 70) + Math.round((found / gemFiles.length) * 25),
+            `Extracted ${found} / ${gemFiles.length} GEM(s)...`
+          );
+        }
+      }
+      if (dlAbort.signal.aborted) return;
+    }
+
+    if (found === 0) throw new Error('No matching GEM files found.');
+
+    setDlProgress(97, 'Packaging download...');
+    const outBlob = await outputZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+
+    setDlProgress(100, `Done! ${found} GEM(s) ready.`);
+    gcEvent(GC_DOWNLOAD_EVENT, 'GEM download');
+    gcEvent('download-selected', `Download ${found} selected GEM(s)`);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(outBlob);
+    a.download = `panGEMs_selected_${found}_models.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    setTimeout(closeDownloadModal, 1500);
+
+  } catch (err) {
+    if (dlAbort.signal.aborted) return;
+    console.error('Download error:', err);
+    document.getElementById('dl-title').textContent = 'Download failed';
+    document.getElementById('dl-bar').style.width = '0%';
+    document.getElementById('dl-status').textContent = err.message;
+    showDlFallback();
+  }
+}
+
+// --- CSV export ---
+function exportCSV() {
+  const visibleCols = [];
+  COLUMNS.forEach((c, i) => {
+    if (table.column(i).visible()) visibleCols.push(c);
+  });
+
+  const filteredData = table.rows({ search: 'applied' }).data().toArray();
+
+  let csv = visibleCols.map(c => '"' + c.label + '"').join(',') + '\n';
+  filteredData.forEach(row => {
+    csv += visibleCols.map(c => {
+      let val = row[c.key];
+      if (val === null || val === undefined) val = '';
+      val = String(val).replace(/"/g, '""');
+      return '"' + val + '"';
+    }).join(',') + '\n';
+  });
+
+  gcEvent('export-csv', 'Export metadata table (CSV)');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `panGEMs_metadata_${filteredData.length}_models.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// Column toggle
+function toggleColPanel() {
+  const panel = document.getElementById('col-panel');
+  const btn = document.getElementById('btn-toggle-cols');
+  panel.classList.toggle('show');
+  btn.classList.toggle('active');
+}
+function updateColCountBadge() {
+  const n = COLUMNS.reduce((acc, _, i) => acc + (table.column(i).visible() ? 1 : 0), 0);
+  document.getElementById('col-count-badge').textContent = n;
+}
+function toggleColumn(idx) {
+  const col = table.column(idx);
+  col.visible(!col.visible());
+  updateColCountBadge();
+}
+function showAllCols() {
+  COLUMNS.forEach((_, i) => table.column(i).visible(true));
+  document.querySelectorAll('#col-checkboxes input').forEach(cb => cb.checked = true);
+  updateColCountBadge();
+}
+function resetCols() {
+  COLUMNS.forEach((c, i) => table.column(i).visible(c.default));
+  document.querySelectorAll('#col-checkboxes input').forEach(cb => {
+    cb.checked = COLUMNS[parseInt(cb.dataset.idx)].default;
+  });
+  updateColCountBadge();
+}
+
+function buildColCheckboxes() {
+  const container = document.getElementById('col-checkboxes');
+  const groups = {};
+  COLUMNS.forEach((c, i) => {
+    if (!groups[c.group]) groups[c.group] = [];
+    groups[c.group].push({ ...c, idx: i });
+  });
+  let html = '<div class="row">';
+  const groupNames = Object.keys(groups);
+  groupNames.forEach((g, gi) => {
+    html += '<div class="col-md-4 col-lg-3 col-group">';
+    html += `<div class="col-group-title">${g}</div>`;
+    groups[g].forEach(c => {
+      html += `<label><input type="checkbox" data-idx="${c.idx}" ${c.default ? 'checked' : ''} onchange="toggleColumn(${c.idx})">${c.label}</label><br>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function colIdx(key) { return COLUMNS.findIndex(c => c.key === key); }
+
+// Load data + batch map
+Promise.all([
+  fetch('gems_metadata.json').then(r => r.json()),
+  fetch('gem_batches.json').then(r => r.json())
+])
+  .then(([data, batchMap]) => {
+    gemBatchMap = batchMap;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('gem-table').style.display = 'table';
+
+    // Build header
+    const headerRow = document.getElementById('header-row');
+    COLUMNS.forEach(c => {
+      const th = document.createElement('th');
+      th.textContent = c.label;
+      headerRow.appendChild(th);
+    });
+
+    // Stats
+    document.getElementById('stat-total').textContent = data.length.toLocaleString();
+    document.getElementById('stat-species').textContent = new Set(data.map(d => d.organism).filter(Boolean)).size;
+    document.getElementById('stat-genera').textContent = new Set(data.map(d => (d.organism || '').split(' ')[0]).filter(Boolean)).size;
+    document.getElementById('stat-countries').textContent = new Set(data.map(d => d.isolation_country).filter(Boolean)).size;
+
+    // Filters
+    populateFilter('filter-dataset', new Set(data.map(d => d.dataset).filter(Boolean)));
+    populateFilter('filter-organism', new Set(data.map(d => d.organism).filter(Boolean)));
+    populateFilter('filter-source', new Set(data.map(d => d.isolation_source).filter(Boolean)));
+    populateFilter('filter-country', new Set(data.map(d => d.isolation_country).filter(Boolean)));
+    populateFilter('filter-host', new Set(data.map(d => d.host_name).filter(Boolean)));
+
+    // Build DataTable columns config
+    const dtColumns = COLUMNS.map(c => ({
+      data: c.key,
+      visible: c.default,
+      defaultContent: '',
+      render: c.render ? ((d) => c.render(d)) : ((d) => truncate(d, 30))
+    }));
+
+    table = $('#gem-table').DataTable({
+      data: data,
+      deferRender: true,
+      pageLength: 25,
+      select: { style: 'multi', selector: 'td' },
+      order: [[1, 'asc'], [2, 'asc']],
+      columns: dtColumns,
+      scrollX: true,
+      language: {
+        search: 'Search:',
+        info: 'Showing _START_ to _END_ of _TOTAL_ GEMs',
+        lengthMenu: 'Show _MENU_ GEMs'
+      }
+    });
+
+    buildColCheckboxes();
+    updateColCountBadge();
+
+    // Filter events (exact match)
+    const filterMap = {
+      'filter-dataset': 'dataset', 'filter-organism': 'organism',
+      'filter-source': 'isolation_source', 'filter-country': 'isolation_country',
+      'filter-host': 'host_name'
+    };
+    Object.entries(filterMap).forEach(([id, key]) => {
+      document.getElementById(id).addEventListener('change', function() {
+        const val = this.value;
+        table.column(colIdx(key)).search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false).draw();
+      });
+    });
+
+    table.on('select deselect', updateSelCount);
+  })
+  .catch(err => {
+    document.getElementById('loading').innerHTML =
+      '<p class="text-danger">Failed to load metadata. Please try refreshing.</p>';
+    console.error(err);
+  });
+
+// --- GEM Detail Viewer ---
+let gemDetailTables = [];
+
+function closeGemDetail() {
+  gemDetailTables.forEach(t => t.destroy());
+  gemDetailTables = [];
+  const el = document.getElementById('gem-detail-overlay');
+  if (el) el.remove();
+}
+
+async function openGemDetail(gemFile) {
+  const batchNum = gemBatchMap[gemFile];
+  if (!batchNum) { alert('Batch not found for ' + gemFile); return; }
+
+  const meta = table.rows().data().toArray().find(r => r.gem_file === gemFile) || {};
+
+  const overlay = document.createElement('div');
+  overlay.className = 'gem-detail-overlay';
+  overlay.id = 'gem-detail-overlay';
+  overlay.innerHTML = `
+    <div class="gem-detail">
+      <div class="gem-detail-header">
+        <div>
+          <h4>${gemFile}</h4>
+          <span style="font-size:0.8rem;color:#888"><em>${meta.organism || ''}</em> ${meta.strain ? '| ' + meta.strain : ''} ${meta.dataset ? '| ' + meta.dataset : ''} ${meta.phylogroup ? '| Phylogroup ' + meta.phylogroup : ''}</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="closeGemDetail()">Close</button>
+        </div>
+      </div>
+      <div class="gem-detail-body">
+        <div class="gem-loading" id="gem-detail-loading">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+          Loading model data...
+        </div>
+        <div id="gem-detail-content" style="display:none"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeGemDetail(); });
+
+  try {
+    const batchUrl = BATCH_URL_BASE + String(batchNum).padStart(2, '0') + '.zip';
+    const resp = await fetch(batchUrl);
+    if (!resp.ok) throw new Error('Failed to fetch batch');
+    const zip = await JSZip.loadAsync(await resp.blob());
+
+    const entry = zip.file(gemFile);
+    if (!entry) throw new Error('GEM not found in batch');
+
+    const modelJson = JSON.parse(await entry.async('text'));
+    document.getElementById('gem-detail-loading').style.display = 'none';
+    document.getElementById('gem-detail-content').style.display = 'block';
+
+    renderGemDetail(modelJson, meta);
+  } catch (err) {
+    document.getElementById('gem-detail-loading').innerHTML =
+      `<span class="text-danger">Failed to load model: ${err.message}</span>`;
+  }
+}
+
+function renderGemDetail(model, meta) {
+  const rxns = model.reactions || [];
+  const mets = model.metabolites || [];
+  const genes = model.genes || [];
+  const exRxns = rxns.filter(r => (r.id || '').startsWith('EX_'));
+  const withGpr = rxns.filter(r => (r.gene_reaction_rule || '').trim());
+
+  const content = document.getElementById('gem-detail-content');
+  content.innerHTML = `
+    <div class="gem-stat-grid">
+      <div class="gem-stat-item"><div class="val">${rxns.length.toLocaleString()}</div><div class="lbl">Reactions</div></div>
+      <div class="gem-stat-item"><div class="val">${mets.length.toLocaleString()}</div><div class="lbl">Metabolites</div></div>
+      <div class="gem-stat-item"><div class="val">${genes.length.toLocaleString()}</div><div class="lbl">Genes</div></div>
+      <div class="gem-stat-item"><div class="val">${exRxns.length}</div><div class="lbl">Exchange Rxns</div></div>
+      <div class="gem-stat-item"><div class="val">${withGpr.length.toLocaleString()}</div><div class="lbl">With GPR</div></div>
+      <div class="gem-stat-item"><div class="val">${model.id || '-'}</div><div class="lbl">Model ID</div></div>
+    </div>
+
+    <div class="gem-tabs">
+      <div class="gem-tab active" onclick="switchGemTab(this, 'tab-rxns')">Reactions (${rxns.length})</div>
+      <div class="gem-tab" onclick="switchGemTab(this, 'tab-mets')">Metabolites (${mets.length})</div>
+      <div class="gem-tab" onclick="switchGemTab(this, 'tab-genes')">Genes (${genes.length})</div>
+    </div>
+
+    <div id="tab-rxns" class="gem-tab-content active">
+      <table id="dt-rxns" class="table table-sm table-striped" style="width:100%">
+        <thead><tr><th>ID</th><th>Name</th><th>Reaction</th><th>GPR</th><th>Lower</th><th>Upper</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="tab-mets" class="gem-tab-content">
+      <table id="dt-mets" class="table table-sm table-striped" style="width:100%">
+        <thead><tr><th>ID</th><th>Name</th><th>Formula</th><th>Compartment</th><th>Charge</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="tab-genes" class="gem-tab-content">
+      <table id="dt-genes" class="table table-sm table-striped" style="width:100%">
+        <thead><tr><th>Gene ID</th><th>Name</th><th>Reactions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>`;
+
+  function rxnFormula(r) {
+    const metabs = r.metabolites || {};
+    const left = [], right = [];
+    for (const [mid, coeff] of Object.entries(metabs)) {
+      const c = Math.abs(coeff);
+      const label = c === 1 ? mid : c + ' ' + mid;
+      if (coeff < 0) left.push(label);
+      else right.push(label);
+    }
+    const arrow = (r.lower_bound || 0) < 0 ? ' <=> ' : ' => ';
+    return left.join(' + ') + arrow + right.join(' + ');
+  }
+
+  const geneRxnCount = {};
+  rxns.forEach(r => {
+    (r.genes || []).forEach(g => {
+      const gid = g.id || g;
+      geneRxnCount[gid] = (geneRxnCount[gid] || 0) + 1;
+    });
+  });
+
+  const rxnData = rxns.map(r => ({
+    id: r.id || '',
+    name: r.name || '',
+    formula: rxnFormula(r),
+    gpr: r.gene_reaction_rule || '',
+    lb: r.lower_bound != null ? r.lower_bound : '',
+    ub: r.upper_bound != null ? r.upper_bound : '',
+  }));
+
+  const dtRxns = $('#dt-rxns').DataTable({
+    data: rxnData, deferRender: true, pageLength: 20, order: [[0, 'asc']],
+    columns: [
+      { data: 'id' },
+      { data: 'name', render: d => d.length > 40 ? d.substring(0,40) + '...' : d },
+      { data: 'formula', render: d => `<span title="${d}" style="max-width:300px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d}</span>` },
+      { data: 'gpr', render: d => `<span title="${d}" style="max-width:180px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d}</span>` },
+      { data: 'lb' }, { data: 'ub' }
+    ]
+  });
+  gemDetailTables.push(dtRxns);
+
+  const metData = mets.map(m => ({
+    id: m.id || '',
+    name: m.name || '',
+    formula: m.formula || '',
+    compartment: m.compartment || '',
+    charge: m.charge != null ? m.charge : ''
+  }));
+
+  const dtMets = $('#dt-mets').DataTable({
+    data: metData, deferRender: true, pageLength: 20, order: [[0, 'asc']],
+    columns: [
+      { data: 'id' }, { data: 'name' }, { data: 'formula' },
+      { data: 'compartment' }, { data: 'charge' }
+    ]
+  });
+  gemDetailTables.push(dtMets);
+
+  const geneData = genes.map(g => ({
+    id: g.id || g,
+    name: g.name || '',
+    nrxns: geneRxnCount[g.id || g] || 0
+  }));
+
+  const dtGenes = $('#dt-genes').DataTable({
+    data: geneData, deferRender: true, pageLength: 20, order: [[0, 'asc']],
+    columns: [
+      { data: 'id' }, { data: 'name' }, { data: 'nrxns' }
+    ]
+  });
+  gemDetailTables.push(dtGenes);
+}
+
+function switchGemTab(el, tabId) {
+  document.querySelectorAll('.gem-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.gem-tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  gemDetailTables.forEach(t => t.columns.adjust());
+}
+</script>
+</body>
+</html>
