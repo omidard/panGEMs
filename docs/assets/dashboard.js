@@ -142,7 +142,19 @@
           tip.style.top = (ev.pageY - 10) + 'px';
           d3.select(this).attr('stroke', '#1a3a5c').attr('stroke-width', 1).raise();
         })
-        .on('mouseleave', function () { tip.style.opacity = 0; d3.select(this).attr('stroke', '#fff').attr('stroke-width', 0.4); });
+        .on('mouseleave', function () { tip.style.opacity = 0; d3.select(this).attr('stroke', '#fff').attr('stroke-width', 0.4); })
+        .on('click', function (ev, d) {
+          const n = geo[d.properties.iso] || 0;
+          if (!n) return;
+          const sel = document.getElementById('filter-country');
+          if (sel && [...sel.options].some(o => o.value === d.properties.name)) {
+            sel.value = d.properties.name;
+            sel.dispatchEvent(new Event('change'));
+            tip.style.opacity = 0;
+            const tw = document.querySelector('.table-wrap');
+            if (tw) tw.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
     }
     paint();
     let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(paint, 200); });

@@ -162,14 +162,6 @@
 </div>
 
 <div class="container">
-  <!-- Showcase screenshot -->
-  <div class="showcase">
-    <div class="showcase-frame">
-      <img src="assets/gem_viewer.png" alt="The panGEMs in-browser GEM viewer: a strain-specific model's reactions, metabolites and genes shown in sortable tables" loading="lazy">
-    </div>
-    <div class="showcase-cap">Click any model to explore its full <strong>reactions</strong>, <strong>metabolites</strong> and <strong>genes</strong> — right in your browser, no install.</div>
-  </div>
-
   <!-- Stats -->
   <div class="row g-3 mb-3">
     <div class="col-6 col-md-3"><div class="stat-card"><div class="num" id="stat-total">-</div><div class="label">GEMs Available</div></div></div>
@@ -209,7 +201,7 @@
       </div>
       <div class="panel span-2">
         <div class="panel-title"><span>Isolation geography</span></div>
-        <div class="panel-note">Strains with a recorded isolation country (98% mapped), shaded by number of models. Hover a country for details.</div>
+        <div class="panel-note">Strains with a recorded isolation country (98% mapped), shaded by number of models. Hover for details &middot; <strong>click a country to filter the table below</strong>.</div>
         <div id="map"></div>
         <div class="map-legend" id="map-legend">
           <span>0</span><span class="grad"></span><span class="max">–</span>
@@ -412,7 +404,8 @@ const COLUMNS = [
   { key: 'taxon_id',              label: 'Taxon ID',            group: 'Classification', default: false },
   // -- Isolation & Host --
   { key: 'isolation_source',      label: 'Isolation Source',    group: 'Isolation & Host', default: true },
-  { key: 'isolation_country',     label: 'Country',             group: 'Isolation & Host', default: true },
+  { key: 'country',               label: 'Country',             group: 'Isolation & Host', default: true },
+  { key: 'isolation_country',     label: 'Country (raw)',       group: 'Isolation & Host', default: false },
   { key: 'geographic_location',   label: 'Location',            group: 'Isolation & Host', default: false },
   { key: 'collection_date',       label: 'Collection Date',     group: 'Isolation & Host', default: false },
   { key: 'host_name',             label: 'Host',                group: 'Isolation & Host', default: true },
@@ -765,13 +758,13 @@ Promise.all([
     document.getElementById('stat-total').textContent = data.length.toLocaleString();
     document.getElementById('stat-species').textContent = new Set(data.map(d => d.organism).filter(Boolean)).size;
     document.getElementById('stat-genera').textContent = new Set(data.map(d => (d.organism || '').split(' ')[0]).filter(Boolean)).size;
-    document.getElementById('stat-countries').textContent = new Set(data.map(d => d.isolation_country).filter(Boolean)).size;
+    document.getElementById('stat-countries').textContent = new Set(data.map(d => d.country).filter(Boolean)).size;
 
     // Filters
     populateFilter('filter-dataset', new Set(data.map(d => d.dataset).filter(Boolean)));
     populateFilter('filter-organism', new Set(data.map(d => d.organism).filter(Boolean)));
     populateFilter('filter-source', new Set(data.map(d => d.isolation_source).filter(Boolean)));
-    populateFilter('filter-country', new Set(data.map(d => d.isolation_country).filter(Boolean)));
+    populateFilter('filter-country', new Set(data.map(d => d.country).filter(Boolean)));
     populateFilter('filter-host', new Set(data.map(d => d.host_name).filter(Boolean)));
 
     // Build DataTable columns config
@@ -803,7 +796,7 @@ Promise.all([
     // Filter events (exact match)
     const filterMap = {
       'filter-dataset': 'dataset', 'filter-organism': 'organism',
-      'filter-source': 'isolation_source', 'filter-country': 'isolation_country',
+      'filter-source': 'isolation_source', 'filter-country': 'country',
       'filter-host': 'host_name'
     };
     Object.entries(filterMap).forEach(([id, key]) => {
