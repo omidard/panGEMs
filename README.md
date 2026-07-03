@@ -19,6 +19,14 @@ filterable, downloadable web interface — no server, no install, everything run
   <em>The landing page dashboard — model size, taxonomic breadth, and isolation geography, all interactive.</em>
 </p>
 
+<p align="center">
+  <a href="https://omidard.github.io/panGEMs/analytics.html">
+    <img src="docs/assets/analytics_clustermap.png" width="430" alt="Presence/absence clustermap of reactions across models">
+    <img src="docs/assets/analytics_tree.png" width="430" alt="Species dendrogram built from metabolic content"><br>
+    <em>Analytics workspace — presence/absence clustermaps and a metabolic-content species tree.</em>
+  </a>
+</p>
+
 | Collection | Organism(s) | Models | Format | Source |
 |---|---|---:|---|---|
 | **EcopanGEM** | _Escherichia coli_ | 2,313 | JSON | [omidard/EcopanGEM](https://github.com/omidard/EcopanGEM) · [Zenodo 17581962](https://zenodo.org/records/17581962) |
@@ -31,7 +39,17 @@ filterable, downloadable web interface — no server, no install, everything run
 
 - **See the collection at a glance** — an interactive landing dashboard: model-size
   distribution (reactions / genes / metabolites), _Lactobacillaceae_ genomes per species,
-  and a world map of isolation geography.
+  and a **clickable world map** of isolation geography (click a country to filter the table).
+- **[Analytics workspace](https://omidard.github.io/panGEMs/analytics.html)** — compare
+  the reaction & metabolite content of the models:
+  - **Compare models** — pick two or more and see shared / unique reactions, pairwise
+    similarity, and a differential presence table.
+  - **Compare groups** — define cohorts by species or metadata and contrast their
+    repertoires (core / pan, size distributions, differential prevalence).
+  - **Presence/absence clustermap** — hierarchically-clustered heatmap over the most
+    variable reactions/metabolites for any selected set.
+  - **Species tree** — a clickable cladogram, as NCBI taxonomy *or* a dendrogram built
+    from metabolic (reaction) content; click a species to load its GEMs into the tools.
 - **Browse & search** 4,659 GEMs in one table, with rich per-model metadata.
 - **Filter** by dataset, organism (species), isolation source, country, and host.
 - **Inspect any model in the browser** — click a GEM file to view its full reaction,
@@ -109,12 +127,17 @@ panGEMs/
 ├── LICENSE
 └── docs/                        # GitHub Pages site root
     ├── index.html               # the browser (single self-contained page)
+    ├── analytics.html           # analytics workspace (compare / cluster / tree)
     ├── gems_metadata.json       # unified metadata, 4,659 rows
     ├── gem_batches.json         # gem_file → batch-zip number
     ├── assets/
     │   ├── dashboard.js         # landing dashboard (Chart.js + d3)
     │   ├── dashboard.json       # precomputed size / species / geo aggregates
     │   ├── world.geojson        # slim Natural Earth 110m countries (ISO_A3)
+    │   ├── analytics.js         # analytics tools (bit-matrix math + Chart.js + d3)
+    │   ├── presence_reactions.bin / presence_metabolites.bin   # bit-packed presence
+    │   ├── reactions_vocab.json / metabolites_vocab.json       # feature vocabularies
+    │   ├── presence_manifest.json                              # dims + model row order
     │   └── *.png                # screenshots
     └── gems/
         ├── gems_batch_01..10.zip   # E. coli GEMs (from EcopanGEM)
