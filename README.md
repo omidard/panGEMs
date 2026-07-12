@@ -65,6 +65,57 @@ Compare and cluster the **reaction &amp; metabolite content** of the models — 
 
 ---
 
+<!-- ─────────────────────────  Flux Studio  ───────────────────────── -->
+### ⚗️ Flux Studio — simulate these models in your browser
+
+[**Flux Studio**](https://github.com/omidard/FluxStudio) runs constraint-based analyses over all **4,659** of these strain models, entirely client-side. It reads this collection directly, so every model in the browser above is one click from a simulation.
+
+<table>
+<tr>
+<td width="50%"><a href="https://omidard.github.io/FluxStudio/"><img src="https://raw.githubusercontent.com/omidard/FluxStudio/main/docs/shot_1_home.png" alt="Thirteen analyses" width="100%"></a></td>
+<td width="50%"><a href="https://omidard.github.io/FluxStudio/"><img src="https://raw.githubusercontent.com/omidard/FluxStudio/main/docs/shot_2_explore.png" alt="Solve, and see the flux map" width="100%"></a></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Thirteen analyses</b></sub></td>
+<td align="center"><sub><b>Solve, and see the flux map</b></sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="https://omidard.github.io/FluxStudio/"><img src="https://raw.githubusercontent.com/omidard/FluxStudio/main/docs/shot_3_knockout.png" alt="Knockout: what changed, and is it real" width="100%"></a></td>
+<td width="50%"><a href="https://omidard.github.io/FluxStudio/"><img src="https://raw.githubusercontent.com/omidard/FluxStudio/main/docs/shot_4_media.png" alt="12,340 media, in every analysis" width="100%"></a></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Knockout: what changed, and is it real</b></sub></td>
+<td align="center"><sub><b>12,340 media, in every analysis</b></sub></td>
+</tr>
+</table>
+
+**Thirteen analyses.** Flux balance analysis, parsimonious FBA, linear MOMA, loopless flux,
+dynamic FBA, flux variability, flux sampling, production envelopes, phenotype phase planes,
+reaction and gene essentiality, synthetic lethality, FSEOF strain design, and model QC.
+Growth media come from the [Media database](https://github.com/omidard/Media): 12,340 of
+them, keyed to BiGG exchange reactions.
+
+Nothing installs and nothing uploads. The linear program is solved in your own browser tab
+by a WebAssembly build of GLPK, and every result is checked against COBRApy 0.27.
+
+**Every strain here links straight in.** Open any model in the browser above and press
+*Simulate this strain*, or build the link yourself:
+
+```
+https://omidard.github.io/FluxStudio/?model=<gem_file>&tab=genes&medium=CDM
+   → gene essentiality for one strain on a chosen medium
+```
+
+<div align="center">
+  <a href="https://omidard.github.io/FluxStudio/"><img src="https://img.shields.io/badge/%E2%9A%97%EF%B8%8F%20Launch%20Flux%20Studio-1E40AF?style=for-the-badge&logo=googlechrome&logoColor=white" height="42" alt="Launch Flux Studio"></a>
+  &nbsp;&nbsp;<a href="https://omidard.github.io/FluxStudio/"><code>omidard.github.io/FluxStudio</code></a>
+  &nbsp;·&nbsp;<a href="https://github.com/omidard/FluxStudio">source</a>
+</div>
+
+<br>
+
+---
+
 ## What you can do
 
 - **See the collection at a glance** — an interactive landing dashboard: model-size
