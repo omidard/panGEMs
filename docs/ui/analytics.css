@@ -1,0 +1,491 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   panGEMs Analytics — the workspace
+
+   Same design system as Flux Studio and the three GEM browsers: Fira Sans and
+   Fira Code, the same tokens, the same white data surfaces. It is the same shell
+   too (topbar, sidebar, views), which is why it can look like the same product
+   rather than a cousin of it.
+
+   THE PLOTS DO NOT FOLLOW THE THEME, and here that is not a preference but a
+   requirement: Plotly renders with paper_bgcolor 'rgba(0,0,0,0)', so a plot is
+   transparent and takes the colour of whatever sits behind it. Put a dark page
+   behind dark axis ink and the figure disappears. So every plot, canvas, heatmap
+   and table sits on --canvas, which is white in both themes. A figure is printed
+   on paper.
+
+   RESKIN. 62 classes, 61 ids the JS reaches for by name, 8 views, 5 Chart.js
+   canvases. Rename nothing.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --font-ui:   'Fira Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data: 'Fira Code', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-full: 999px;
+  --t: 200ms; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --nav-w: 244px;
+  --bar-h: 54px;
+
+  /* the two collections. Semantic, and the same hexes the browsers use. */
+  --eco: #2563EB;   --eco-soft: #EFF4FF;
+  --lacto: #D97706; --lacto-soft: #FEF6E7;
+
+  --ok: #15803D; --ok-bg: #DCFCE7;
+  --warn: #B45309;
+  --bad: #DC2626;
+
+  /* data surfaces: white in BOTH themes, because Plotly paper is transparent */
+  --canvas: #FFFFFF;
+  --canvas-line: #E3E8EF;
+  --canvas-ink: #0F1B2D;
+  --canvas-ink-2: #475569;
+  --canvas-mute: #64748B;
+}
+
+:root, [data-theme='light'] {
+  --accent: #7C3AED; --accent-2: #6D28D9; --accent-soft: #F3EDFF;
+  --on-accent: #FFFFFF;
+
+  --bg: #F1F5F9;
+  --surface: #FFFFFF;
+  --surface-2: #F8FAFC;
+  --ink: #0F1B2D;
+  --ink-2: #334155;
+  --ink-3: #64748B;
+  --ink-4: #94A3B8;
+  --line: #E2E8F0;
+  --line-2: #CBD5E1;
+
+  --topbar-bg: rgba(255,255,255,.85);
+  --sh-1: 0 1px 2px rgba(15,27,45,.05), 0 1px 3px rgba(15,27,45,.04);
+  --sh-2: 0 2px 4px rgba(15,27,45,.05), 0 8px 20px -8px rgba(15,27,45,.12);
+  --sh-3: 0 24px 60px -12px rgba(15,27,45,.30);
+}
+
+[data-theme='dark'] {
+  --accent: #A78BFA; --accent-2: #8B5CF6; --accent-soft: rgba(167,139,250,.14);
+  --on-accent: #0B1220;
+
+  --bg: #0B1220;
+  --surface: #111C2E;
+  --surface-2: #16233A;
+  --ink: #E9EEF6;
+  --ink-2: #C2CFE0;
+  --ink-3: #93A4BC;
+  --ink-4: #7C93B4;
+  --line: rgba(255,255,255,.10);
+  --line-2: rgba(255,255,255,.18);
+
+  --eco-soft: rgba(37,99,235,.15);
+  --lacto-soft: rgba(217,119,6,.15);
+  --ok-bg: rgba(21,128,61,.18);
+
+  --topbar-bg: rgba(17,28,46,.86);
+  --sh-1: 0 1px 2px rgba(0,0,0,.30);
+  --sh-2: 0 2px 6px rgba(0,0,0,.30), 0 10px 24px -10px rgba(0,0,0,.5);
+  --sh-3: 0 24px 70px -12px rgba(0,0,0,.65);
+}
+
+/* ═══════════════════════════ base ═════════════════════════════════════════ */
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+[data-theme='dark'] { color-scheme: dark; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+a { color: var(--accent); text-decoration: none; transition: color var(--t) var(--ease); }
+a:hover { color: var(--accent-2); }
+.tabular, code { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+button { cursor: pointer; font-family: var(--font-ui); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ═══════════════════════════ top bar ══════════════════════════════════════ */
+.topbar {
+  position: sticky; top: 0; z-index: 1200;
+  height: var(--bar-h);
+  background: var(--topbar-bg);
+  backdrop-filter: saturate(1.6) blur(10px);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 20px;
+}
+.topbar .brand { display: flex; align-items: center; gap: 11px; }
+.brand .logo {
+  width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto;
+  background: linear-gradient(140deg, var(--accent) 0%, var(--accent-2) 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--on-accent);
+}
+.brand .logo svg { stroke: currentColor; }
+.brand .tt { line-height: 1.15; }
+.brand .tt b { display: block; font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+.brand .tt span { font-size: 11.5px; color: var(--ink-3); }
+.topbar .spacer { flex: 1; }
+.topbar .tb-link {
+  font-size: 12.5px; font-weight: 500;
+  color: var(--ink-2);
+  padding: 6px 11px; border-radius: var(--r-sm);
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.topbar .tb-link:hover { background: var(--surface-2); color: var(--ink); }
+.topbar .tb-cta { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.topbar .tb-cta:hover { background: var(--accent-2); color: var(--on-accent); }
+
+#navToggle {
+  display: none;
+  border: 1px solid var(--line-2); background: var(--surface);
+  color: var(--ink-2);
+  border-radius: var(--r-sm); width: 36px; height: 34px;
+  align-items: center; justify-content: center;
+}
+.theme-toggle {
+  width: 34px; height: 34px; flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-2); background: var(--surface);
+  color: var(--ink-2);
+  border-radius: var(--r-sm);
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.theme-toggle:hover { background: var(--surface-2); color: var(--ink); }
+.theme-toggle .i-sun { display: none; }
+[data-theme='dark'] .theme-toggle .i-sun { display: block; }
+[data-theme='dark'] .theme-toggle .i-moon { display: none; }
+
+/* ═══════════════════════════ shell ════════════════════════════════════════ */
+.shell { display: flex; align-items: flex-start; }
+.sidebar {
+  position: sticky; top: var(--bar-h);
+  width: var(--nav-w); flex: 0 0 var(--nav-w);
+  height: calc(100vh - var(--bar-h));
+  overflow-y: auto;
+  padding: 16px 12px 30px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+.nav-group { margin-bottom: 14px; }
+.nav-group > .lbl {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--ink-4);
+  padding: 4px 12px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  border: none; background: transparent; text-align: left;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  font-size: 13.2px; font-weight: 500;
+  color: var(--ink-2);
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+  margin-bottom: 1px; position: relative;
+}
+.nav-item svg { width: 17px; height: 17px; flex: 0 0 auto; stroke: currentColor; opacity: .8; }
+.nav-item:hover { background: var(--surface-2); color: var(--ink); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav-item.active svg { opacity: 1; }
+.nav-item.active::before {
+  content: ''; position: absolute; left: 0; top: 7px; bottom: 7px;
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--accent);
+}
+.sidebar .foot { font-size: 11px; color: var(--ink-4); padding: 14px 12px 0; line-height: 1.55; }
+.sidebar .foot .it { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; }
+.sidebar .foot .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+.content { flex: 1; min-width: 0; padding: 22px 26px 60px; max-width: 1560px; margin: 0 auto; }
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed; z-index: 1150; left: 0; top: var(--bar-h);
+    transform: translateX(-102%); transition: transform .22s var(--ease);
+    box-shadow: var(--sh-3);
+  }
+  .sidebar.open { transform: none; }
+  #navToggle { display: inline-flex; }
+  .content { padding: 16px 14px 50px; }
+}
+
+/* ═══════════════════════════ views ════════════════════════════════════════ */
+.view { display: none; }
+.view.active { display: block; animation: fade .28s var(--ease); }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.view-head { margin-bottom: 16px; }
+.view-head h1 {
+  font-size: 22px; font-weight: 600; letter-spacing: -.02em;
+  margin: 0 0 4px; color: var(--ink);
+}
+.view-head p { font-size: 13.5px; color: var(--ink-2); margin: 0; max-width: 860px; line-height: 1.6; }
+.view-head b, .view-head strong { color: var(--ink); font-weight: 600; }
+
+/* ═══════════════════════════ metrics ══════════════════════════════════════ */
+.metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 0 0 18px; }
+.metric {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 15px 16px;
+  box-shadow: var(--sh-1);
+  position: relative; overflow: hidden;
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.metric:hover { transform: translateY(-2px); box-shadow: var(--sh-2); }
+.metric .v {
+  font-family: var(--font-data);
+  font-size: 26px; font-weight: 700; letter-spacing: -.02em;
+  color: var(--ink); line-height: 1.1;
+}
+.metric .l {
+  font-size: 11px; color: var(--ink-3); margin-top: 6px; font-weight: 500;
+  letter-spacing: .05em; text-transform: uppercase;
+}
+.metric .accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+
+/* the headline number. A gradient slab was the 2018 way; this is a quiet card that
+   lets the number itself do the work. */
+.metric.hero {
+  grid-column: 1 / -1;
+  background:
+    radial-gradient(140% 120% at 0% 0%, var(--accent-soft) 0%, transparent 58%),
+    var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 22px 24px;
+}
+.metric.hero .v { font-size: 42px; color: var(--accent); letter-spacing: -.03em; }
+.metric.hero .l {
+  font-size: 12.5px; color: var(--ink-2); text-transform: none; letter-spacing: 0;
+  font-weight: 400; margin-top: 8px;
+}
+.metric.hero .accent-bar { display: none; }
+
+/* ═══════════════════════════ cards ════════════════════════════════════════ */
+.card2 {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-1);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  transition: box-shadow var(--t) var(--ease);
+}
+.card2:hover { box-shadow: var(--sh-2); }
+.card2 .hd {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 2px; flex-wrap: wrap;
+}
+.card2 h3 { font-size: 15px; font-weight: 600; color: var(--ink); margin: 0; letter-spacing: -.01em;
+            display: flex; align-items: center; gap: 8px; }
+.card2 .sub { font-size: 12.5px; color: var(--ink-3); margin: 3px 0 12px; line-height: 1.55; }
+.card2 .sub b, .card2 .sub strong { color: var(--ink-2); font-weight: 600; }
+
+.caption {
+  font-size: 12px; color: var(--ink-2);
+  margin-top: 11px; line-height: 1.6;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--accent);
+}
+.caption b { color: var(--ink); font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-12-hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; }
+@media (max-width: 1050px) { .grid2, .grid-12-hero { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════ controls ═════════════════════════════════════ */
+.ctl-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-bottom: 6px; }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl label {
+  font-size: 10.5px; font-weight: 700;
+  color: var(--ink-3); text-transform: uppercase; letter-spacing: .07em;
+}
+.ctl select, .ctl input {
+  font-family: var(--font-ui); font-size: 13px;
+  border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  padding: 6px 9px;
+  background: var(--surface); color: var(--ink);
+  min-width: 150px;
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.ctl select:focus, .ctl input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+select[multiple] { min-height: 132px; }
+
+.seg {
+  display: inline-flex; gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 3px;
+}
+.seg button {
+  border: none; background: transparent;
+  font-size: 12.2px; font-weight: 600;
+  color: var(--ink-3);
+  padding: 5px 12px; border-radius: 4px;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.seg button:hover { color: var(--ink); }
+.seg button.active { background: var(--accent); color: var(--on-accent); }
+
+.btn2 {
+  border: none; border-radius: var(--r-sm);
+  padding: 8px 16px;
+  font-size: 13px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--t) var(--ease), color var(--t) var(--ease),
+              transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.btn2:hover:not(:disabled) { transform: translateY(-1px); }
+.btn2:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.btn-primary2 { background: var(--accent); color: var(--on-accent); }
+.btn-primary2:hover:not(:disabled) { background: var(--accent-2); box-shadow: var(--sh-2); }
+.btn-ghost { background: var(--surface); border: 1px solid var(--line-2); color: var(--ink-2); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); border-color: var(--mute); }
+.btn-xs { font-size: 11.5px; padding: 5px 11px; }
+
+/* ═══════════════════════════ chips / legend / tags ════════════════════════ */
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  border-radius: var(--r-full);
+  padding: 5px 11px;
+  font-size: 12.2px; font-weight: 600;
+  margin: 3px 4px 3px 0;
+}
+.chip .x { cursor: pointer; font-weight: 700; opacity: .55; transition: opacity var(--t) var(--ease); }
+.chip .x:hover { opacity: 1; }
+
+.lgnd { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-2); }
+.lgnd .it { display: inline-flex; align-items: center; gap: 6px; }
+.lgnd .sw { width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto; }
+.lgnd .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.tag {
+  display: inline-block;
+  font-size: 9.5px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.tag-new { background: var(--ok-bg); color: var(--ok); }
+.tag-up { background: var(--eco-soft); color: var(--eco); }
+
+/* ═══════════════════════════ stats ════════════════════════════════════════ */
+.statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 9px; margin: 2px 0 14px; }
+.statbox {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 11px 12px;
+}
+.statbox .v {
+  font-family: var(--font-data);
+  font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: -.02em;
+}
+.statbox .l {
+  font-size: 10px; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: .06em;
+  margin-top: 3px; font-weight: 600;
+}
+.statbox.eco { border-left: 3px solid var(--eco); }
+.statbox.lacto { border-left: 3px solid var(--lacto); }
+
+/* ═══════════════════════════ DATA SURFACES ════════════════════════════════
+   Plotly paper is transparent, so a plot takes the colour of what is behind it.
+   White in both themes, or every figure vanishes the moment the page goes dark. */
+.plot, .heat-wrap, .tbl-scroll, canvas.crisp {
+  background: var(--canvas);
+}
+/* No padding. Plotly sizes its SVG to the element's height, and padding takes that
+   out of the content box, so the axis titles end up clipped against the border. */
+.plot {
+  width: 100%;
+  border: 1px solid var(--canvas-line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  color-scheme: light;                 /* keep Plotly's own controls light on white */
+}
+.heat-wrap {
+  overflow: auto;
+  border: 1px solid var(--canvas-line);
+  border-radius: var(--r-sm);
+}
+canvas.crisp { display: block; }
+
+.tbl-scroll {
+  max-height: 520px; overflow: auto;
+  border: 1px solid var(--canvas-line);
+  border-radius: var(--r-sm);
+}
+table.mini { font-size: 12.5px; width: 100%; border-collapse: collapse; color: var(--canvas-ink); }
+table.mini th {
+  background: #F1F5F9;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--canvas-mute);
+  position: sticky; top: 0; z-index: 2;
+  padding: 7px 9px; text-align: left;
+  border-bottom: 1px solid var(--canvas-line);
+  font-weight: 700;
+}
+table.mini td { padding: 6px 9px; border-bottom: 1px solid #EEF2F7; color: var(--canvas-ink); }
+table.mini tr:hover td { background: #F8FAFC; }
+.present { color: var(--ok); font-weight: 700; text-align: center; }
+.absent { color: #CBD5E1; text-align: center; }
+
+/* ═══════════════════════════ loading / empty ══════════════════════════════ */
+#loading { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+#loading-msg { color: var(--ink-3); font-size: 13.5px; }
+.spin {
+  width: 38px; height: 38px;
+  border: 3px solid var(--line-2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-bar {
+  width: 260px; height: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.load-bar i {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width .4s var(--ease);
+  border-radius: var(--r-full);
+}
+
+.sk {
+  background: linear-gradient(100deg, var(--surface-2) 30%, var(--surface) 50%, var(--surface-2) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+.empty { text-align: center; color: var(--ink-3); padding: 38px 16px; font-size: 13.5px; }
+.empty svg { width: 34px; height: 34px; stroke: var(--ink-4); margin-bottom: 8px; }
+
+/* ═══════════════════════════ tooltip ══════════════════════════════════════ */
+.vtip {
+  position: fixed; pointer-events: none; opacity: 0;
+  transition: opacity .1s linear; z-index: 9999;
+  background: #0F1B2D; color: #fff;
+  font-size: 12px; padding: 7px 10px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--sh-3);
+  line-height: 1.5; max-width: 280px;
+}
+.vtip .k { color: #A5C4EE; }
+[data-theme='dark'] .vtip { background: #E9EEF6; color: #0B1220; }
+[data-theme='dark'] .vtip .k { color: #6D28D9; }
+
+footer { text-align: center; padding: 22px; color: var(--ink-4); font-size: 12px; }
+footer a { color: var(--ink-3); }

@@ -5,9 +5,9 @@
 'use strict';
 
 /* =============================== DESIGN TOKENS =============================== */
-const ECO = '#2c6fbb', LACTO = '#c26a10';
+const ECO = '#2563EB', LACTO = '#D97706';
 const INK1 = '#152238', INK2 = '#4a5567', INK3 = '#8b95a5', LINE = '#e6eaf0';
-const PLOT_FONT = { family: "'Segoe UI', system-ui, sans-serif", color: INK2, size: 11 };
+const PLOT_FONT = { family: "'Fira Sans', system-ui, -apple-system, sans-serif", color: INK2, size: 11 };
 // validated 8-hue categorical palette (dataviz default; WARN-band CVD -> used only with legend + hover)
 const CAT8 = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
 const OTHER_COL = '#9aa4b2';
