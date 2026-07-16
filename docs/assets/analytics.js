@@ -202,12 +202,37 @@ function switchView(name) {
   // resize plotly in the now-visible view
   requestAnimationFrame(() => plotDivs.forEach(id => { const el = document.getElementById(id); if (el && el.offsetParent) try { Plotly.Plots.resize(el); } catch (e) {} }));
 }
+/* Shared crisp axis styling — merged into every axis the caller defines, so one edit
+   lifts every plot: hairline grid, outside ticks, a readable 11.5px tick font and a
+   12px semibold title, with a subtle hover spike line. Caller's title/type/range win. */
+const AX = {
+  gridcolor: '#EEF2F8', griddash: 'solid', zeroline: true, zerolinecolor: '#D4DCE8', zerolinewidth: 1.4,
+  linecolor: '#CBD5E1', linewidth: 1, showline: true, mirror: false,
+  ticks: 'outside', tickcolor: '#CBD5E1', ticklen: 4, tickwidth: 1,
+  tickfont: { size: 11.5, family: PLOT_FONT.family, color: INK2 },
+  titlefont: { size: 12.5, family: PLOT_FONT.family, color: INK1 },
+  showspikes: true, spikecolor: '#B7C1D1', spikethickness: 1, spikedash: 'dot', spikemode: 'across', spikesnap: 'cursor',
+  automargin: true,
+};
+function styleAxes(layout) {
+  Object.keys(layout).forEach(k => {
+    if (/^[xy]axis\d*$/.test(k)) layout[k] = Object.assign({}, AX, layout[k]);
+  });
+  return layout;
+}
 function newPlot(id, data, layout, extra) {
   plotDivs.add(id);
-  const cfg = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'].filter(() => !(extra && extra.keepSelect)), toImageButtonOptions: { format: 'png', scale: 2, filename: 'panGEMs_' + id } };
+  const cfg = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'].filter(() => !(extra && extra.keepSelect)), toImageButtonOptions: { format: 'png', scale: 3, filename: 'panGEMs_' + id } };
   if (extra && extra.keepSelect) cfg.modeBarButtonsToRemove = [];
-  const base = { font: PLOT_FONT, margin: { l: 48, r: 16, t: 12, b: 40 }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', hoverlabel: { bgcolor: INK1, bordercolor: INK1, font: { color: '#fff', family: PLOT_FONT.family, size: 12 } } };
-  return Plotly.newPlot(id, data, Object.assign(base, layout), cfg);
+  const base = {
+    font: PLOT_FONT, margin: { l: 52, r: 18, t: 14, b: 44 },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+    hovermode: 'closest', hoverdistance: 24,
+    hoverlabel: { bgcolor: INK1, bordercolor: INK1, font: { color: '#fff', family: PLOT_FONT.family, size: 12 }, align: 'left' },
+    colorway: CAT8,
+    legend: { bgcolor: 'rgba(255,255,255,.65)', bordercolor: '#E3E8EF', borderwidth: 1, font: { size: 11 } },
+  };
+  return Plotly.newPlot(id, data, styleAxes(Object.assign(base, layout)), cfg);
 }
 
 /* globals: shared reactions/metabolites, per-collection totals */
@@ -303,9 +328,17 @@ function renderSpectrum(id, rows, m, label, capId) {
     x: centers, y: bins, type: 'bar', marker: { color: colors, line: { width: 0 } },
     hovertemplate: '%{x}% of genomes<br>%{y} features<extra></extra>'
   }], {
-    height: id === 'ov-spectrum' ? 300 : 330, margin: { l: 52, r: 14, t: 8, b: 42 }, bargap: 0.06,
+    height: id === 'ov-spectrum' ? 300 : 330, margin: { l: 52, r: 14, t: 22, b: 42 }, bargap: 0.06,
     xaxis: { title: { text: '% of ' + label + ' genomes carrying the feature', font: PLOT_FONT }, gridcolor: LINE, zeroline: false, tickmode: 'array', tickvals: ['0', '25', '50', '75', '100'] },
-    yaxis: { title: { text: 'number of features (log)', font: PLOT_FONT }, type: 'log', gridcolor: LINE, zeroline: false }
+    yaxis: { title: { text: 'number of features (log)', font: PLOT_FONT }, type: 'log', gridcolor: LINE, zeroline: false },
+    shapes: [
+      { type: 'rect', xref: 'paper', yref: 'paper', x0: 0, x1: 0.16, y0: 0, y1: 1, fillcolor: 'rgba(217,119,6,.07)', line: { width: 0 }, layer: 'below' },
+      { type: 'rect', xref: 'paper', yref: 'paper', x0: 0.84, x1: 1, y0: 0, y1: 1, fillcolor: 'rgba(37,99,235,.08)', line: { width: 0 }, layer: 'below' }
+    ],
+    annotations: [
+      { x: 0.15, y: 0.97, xref: 'paper', yref: 'paper', text: '◀ <b>cloud</b>', showarrow: false, font: { size: 10.5, color: '#B45309', family: PLOT_FONT.family }, xanchor: 'right', yanchor: 'top' },
+      { x: 0.99, y: 0.97, xref: 'paper', yref: 'paper', text: '<b>core</b> ▶', showarrow: false, font: { size: 10.5, color: ECO, family: PLOT_FONT.family }, xanchor: 'right', yanchor: 'top' }
+    ]
   });
   if (capId) document.getElementById(capId).innerHTML = `<b>${label}</b> (${fmt(Ng)} genomes): <b>${fmt(core)}</b> core features (in every genome), <b>${fmt(unique)}</b> unique to a single genome, <b>${fmt(present)}</b> in the pan-repertoire. The bimodal U shape is the panreactome signature.`;
 }
@@ -356,12 +389,18 @@ function renderEmbedModels(id, nSample, dist, colorBy, capId) {
   }, 30);
 }
 function drawEmbed(id, traces, p, capId, orgs, isSpecies, nModels) {
+  // on-plot cloud labels so the two collections read at a glance
+  const acc = { eco: { sx: 0, sy: 0, n: 0 }, lac: { sx: 0, sy: 0, n: 0 } };
+  traces.forEach(t => { for (let i = 0; i < t.x.length; i++) { const cd = t.customdata[i]; const eco = isSpecies ? FAMILY(cd) === 'Enterobacteriaceae' : META[cd].dataset === 'EcopanGEM'; const g = eco ? acc.eco : acc.lac; g.sx += t.x[i]; g.sy += t.y[i]; g.n++; } });
+  const anns = [];
+  if (acc.lac.n) anns.push({ x: acc.lac.sx / acc.lac.n, y: acc.lac.sy / acc.lac.n, text: '<b>Lactobacillaceae</b>', showarrow: false, font: { size: 12.5, color: LACTO, family: PLOT_FONT.family }, bgcolor: 'rgba(255,255,255,.72)', bordercolor: 'rgba(217,119,6,.35)', borderpad: 3, borderwidth: 1, opacity: 0.95 });
+  if (acc.eco.n) anns.push({ x: acc.eco.sx / acc.eco.n, y: acc.eco.sy / acc.eco.n, ax: -4, ay: -40, text: '<b><i>E. coli</i></b> — metabolic outgroup', showarrow: true, arrowhead: 2, arrowsize: 1, arrowwidth: 1.3, arrowcolor: ECO, font: { size: 11, color: ECO, family: PLOT_FONT.family }, bgcolor: 'rgba(255,255,255,.85)', bordercolor: 'rgba(37,99,235,.4)', borderpad: 3, borderwidth: 1 });
   newPlot(id, traces, {
     height: id === 'ov-embed' ? 430 : 560, margin: { l: 48, r: 14, t: 10, b: 44 },
     xaxis: { title: { text: `PCo1 (${(p.varexp[0] * 100).toFixed(1)}%)`, font: PLOT_FONT }, gridcolor: LINE, zeroline: true, zerolinecolor: '#eef1f5' },
     yaxis: { title: { text: `PCo2 (${(p.varexp[1] * 100).toFixed(1)}%)`, font: PLOT_FONT }, gridcolor: LINE, zeroline: true, zerolinecolor: '#eef1f5' },
     legend: { font: { size: 11 }, itemsizing: 'constant', bgcolor: 'rgba(255,255,255,.6)' },
-    showlegend: true
+    showlegend: true, annotations: anns
   }, { keepSelect: true });
   const el = document.getElementById(id);
   el.removeAllListeners && el.removeAllListeners('plotly_click');
@@ -475,19 +514,40 @@ function runDistance() {
   const { order } = hclustTree(D, n);
   const labels = order.map(i => abbr(orgs[i]));
   const z = order.map(i => order.map(j => D[i][j]));
-  // color-strip labels colored by dataset via tick styling isn't native; embed dataset marker in label
+  const isEco = orgs.map(o => META[speciesMembers(o)[0]].dataset === 'EcopanGEM');
+  // Dynamic range: one lone E. coli row/col (~0.7) otherwise swamps the whole
+  // Lactobacillaceae block (~0.1), flattening it. Cap the colour scale at the 97th
+  // percentile of the within-family (non-outgroup) distances so that block gets the
+  // full ramp; E. coli then reads as a saturated off-scale outgroup, as it should.
+  const sameFam = [];
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (isEco[i] === isEco[j]) sameFam.push(D[i][j]);
+  sameFam.sort((a, b) => a - b);
+  const cap = sameFam.length ? sameFam[Math.min(sameFam.length - 1, Math.floor(0.97 * sameFam.length))] : Math.max(...z.flat());
+  const capR = cap < 0.1 ? cap.toFixed(3) : cap.toFixed(2);
+  // find E. coli display position for the outgroup annotation
+  const ecoPos = order.findIndex(i => isEco[i]);
   const tickText = order.map(i => { const ds = META[speciesMembers(orgs[i])[0]].dataset; const col = ds === 'EcopanGEM' ? ECO : LACTO; return `<span style="color:${col}">●</span> ${esc(abbr(orgs[i]))}`; });
+  const unitTxt = dist === 'cosine' ? '1 − cosine' : 'weighted Jaccard';
   newPlot('dm-plot', [{
-    z, x: labels, y: labels, type: 'heatmap', colorscale: 'Blues', reversescale: false,
-    colorbar: { title: { text: dist === 'cosine' ? '1 − cosine' : 'weighted Jaccard', side: 'right', font: PLOT_FONT }, thickness: 12, len: 0.55, tickfont: { size: 9 } },
-    hovertemplate: '%{y} ↔ %{x}<br>distance %{z:.3f}<extra></extra>', xgap: 1, ygap: 1
+    z, x: labels, y: labels, type: 'heatmap',
+    colorscale: [[0, '#FCFBFF'], [0.15, '#EDE6FB'], [0.4, '#C9B3F2'], [0.7, '#9B72E6'], [1, '#5B21B6']],
+    zmin: 0, zmax: cap, zsmooth: false,
+    colorbar: { title: { text: unitTxt + ' &nbsp;(capped)', side: 'right', font: { size: 11, family: PLOT_FONT.family, color: INK2 } }, thickness: 13, len: 0.6, outlinewidth: 0, tickfont: { size: 9.5, color: INK2 }, ticks: 'outside', ticklen: 3, tickcolor: '#CBD5E1' },
+    xgap: 1.4, ygap: 1.4,
+    hovertemplate: '<b>%{y}</b> ↔ <b>%{x}</b><br>' + unitTxt + ' = %{z:.3f}<extra></extra>'
   }], {
-    height: 640, margin: { l: 150, r: 30, t: 20, b: 150 },
-    xaxis: { tickangle: -55, tickfont: { size: 9.5, family: PLOT_FONT.family, color: INK2 }, ticktext: tickText, tickvals: labels, automargin: true },
-    yaxis: { autorange: 'reversed', tickfont: { size: 9.5, family: PLOT_FONT.family, color: INK2 }, ticktext: tickText, tickvals: labels, automargin: true }
+    height: 660, margin: { l: 158, r: 24, t: 30, b: 158 },
+    xaxis: { tickangle: -55, tickfont: { size: 10, family: PLOT_FONT.family, color: INK2 }, ticktext: tickText, tickvals: labels, automargin: true, showgrid: false, showspikes: false, zeroline: false, showline: false, ticks: '' },
+    yaxis: { autorange: 'reversed', tickfont: { size: 10, family: PLOT_FONT.family, color: INK2 }, ticktext: tickText, tickvals: labels, automargin: true, showgrid: false, showspikes: false, zeroline: false, showline: false, ticks: '' },
+    annotations: (ecoPos >= 0 ? [{
+      x: labels[ecoPos], y: labels[Math.min(ecoPos + 2, n - 1)], xref: 'x', yref: 'y',
+      text: '<b>E. coli</b><br>outgroup<br>(off-scale)', showarrow: true, arrowhead: 2, arrowsize: 0.9, arrowwidth: 1.4, arrowcolor: '#5B21B6', ax: 46, ay: 26,
+      font: { size: 9.5, color: '#5B21B6', family: PLOT_FONT.family }, align: 'center', bgcolor: 'rgba(255,255,255,.9)', bordercolor: '#C9B3F2', borderpad: 3, borderwidth: 1
+    }] : []).concat([{
+      x: 0, y: 1.045, xref: 'paper', yref: 'paper', text: 'colour scale capped at the 97th-percentile within-family distance (' + capR + ') so the Lactobacillaceae block is legible', showarrow: false, font: { size: 10, color: INK3, family: PLOT_FONT.family }, align: 'left', xanchor: 'left'
+    }])
   });
   // computed interpretation: within-Lacto cohesion vs the E. coli outgroup gap
-  const isEco = orgs.map(o => META[speciesMembers(o)[0]].dataset === 'EcopanGEM');
   let ll = 0, lln = 0, el = 0, eln = 0, best = Infinity, bi = 0, bj = 1;
   for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     const d = D[i][j];
