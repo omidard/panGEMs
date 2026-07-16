@@ -281,11 +281,12 @@ function renderSpeciesBar() {
   const yEco = orgs.map((o, i) => ds[i] === 'EcopanGEM' ? o[1] : null);
   const yLac = orgs.map((o, i) => ds[i] === 'LactoPanGEM' ? o[1] : null);
   const labels = orgs.map(o => abbr(o[0]));
+  const txt = arr => arr.map(v => v != null ? fmt(v) : '');
   newPlot('ov-species-bar', [
-    { x: yEco, y: labels, type: 'bar', orientation: 'h', name: 'EcopanGEM', marker: { color: ECO }, hovertemplate: '%{y}<br>%{x} models<extra>EcopanGEM</extra>' },
-    { x: yLac, y: labels, type: 'bar', orientation: 'h', name: 'LactoPanGEM', marker: { color: LACTO }, hovertemplate: '%{y}<br>%{x} models<extra>LactoPanGEM</extra>' }
+    { x: yEco, y: labels, type: 'bar', orientation: 'h', name: 'EcopanGEM', marker: { color: ECO }, text: txt(yEco), textposition: 'outside', textfont: { size: 9.5, color: INK2, family: PLOT_FONT.family }, cliponaxis: false, hovertemplate: '%{y}<br>%{x} models<extra>EcopanGEM</extra>' },
+    { x: yLac, y: labels, type: 'bar', orientation: 'h', name: 'LactoPanGEM', marker: { color: LACTO }, text: txt(yLac), textposition: 'outside', textfont: { size: 9.5, color: INK2, family: PLOT_FONT.family }, cliponaxis: false, hovertemplate: '%{y}<br>%{x} models<extra>LactoPanGEM</extra>' }
   ], {
-    barmode: 'stack', height: 340, margin: { l: 128, r: 14, t: 8, b: 34 },
+    barmode: 'stack', height: 340, margin: { l: 128, r: 40, t: 8, b: 34 },
     xaxis: { title: { text: 'models', font: PLOT_FONT }, gridcolor: LINE, zeroline: false },
     yaxis: { tickfont: { size: 10, family: PLOT_FONT.family, color: INK2 }, automargin: true },
     legend: { orientation: 'h', y: 1.08, x: 0, font: { size: 10 } }
@@ -484,7 +485,12 @@ function rarefaction(rows, m, perms, cap) {
 }
 function renderRarefaction(id, rar, metric, capId) {
   const fitY = rar.Ns.map(n => rar.kappa * Math.pow(n, rar.gamma));
+  const last = rar.Ns.length - 1, Nend = rar.Ns[last], panEnd = rar.pan[last], coreEnd = rar.core[last];
+  const isOpen = rar.gamma > 0.05;
   newPlot(id, [
+    // accessory band between core and pan (fill from core up to pan)
+    { x: rar.Ns, y: rar.core, mode: 'lines', line: { width: 0 }, hoverinfo: 'skip', showlegend: false },
+    { x: rar.Ns, y: rar.pan, mode: 'lines', fill: 'tonexty', fillcolor: 'rgba(37,99,235,.07)', line: { width: 0 }, hoverinfo: 'skip', showlegend: false },
     { x: rar.Ns, y: rar.pan, mode: 'lines', name: 'Pan (union)', line: { color: ECO, width: 2.5 }, hovertemplate: 'N=%{x}<br>pan %{y:.0f}<extra></extra>' },
     { x: rar.Ns, y: fitY, mode: 'lines', name: `Heaps' fit (γ=${rar.gamma.toFixed(3)})`, line: { color: ECO, width: 1, dash: 'dot' }, hoverinfo: 'skip' },
     { x: rar.Ns, y: rar.core, mode: 'lines', name: 'Core (intersection)', line: { color: LACTO, width: 2.5 }, hovertemplate: 'N=%{x}<br>core %{y:.0f}<extra></extra>' }
@@ -492,7 +498,13 @@ function renderRarefaction(id, rar, metric, capId) {
     height: 330, margin: { l: 52, r: 14, t: 8, b: 42 },
     xaxis: { title: { text: 'genomes sampled (N)', font: PLOT_FONT }, gridcolor: LINE, zeroline: false },
     yaxis: { title: { text: metric + ' (log)', font: PLOT_FONT }, type: 'log', gridcolor: LINE, zeroline: false },
-    legend: { orientation: 'h', y: 1.12, x: 0, font: { size: 10 } }
+    legend: { orientation: 'h', y: 1.12, x: 0, font: { size: 10 } },
+    annotations: [
+      { x: Nend, y: Math.log10(panEnd), xref: 'x', yref: 'y', ax: -18, ay: -14, text: 'pan <b>' + fmt(Math.round(panEnd)) + '</b>', showarrow: false, font: { size: 9.5, color: ECO, family: PLOT_FONT.family }, xanchor: 'right' },
+      { x: Nend, y: Math.log10(coreEnd), xref: 'x', yref: 'y', ax: -18, ay: 12, text: 'core <b>' + fmt(Math.round(coreEnd)) + '</b>', showarrow: false, font: { size: 9.5, color: LACTO, family: PLOT_FONT.family }, xanchor: 'right' },
+      { x: 0.5, y: 0.5, xref: 'paper', yref: 'paper', text: '<b>accessory</b><br>pan − core', showarrow: false, font: { size: 10, color: '#5B7BB4', family: PLOT_FONT.family }, opacity: 0.9 },
+      { x: 0.97, y: 0.06, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'bottom', text: (isOpen ? '↗ OPEN pangenome' : '● CLOSED pangenome') + ' · γ=' + rar.gamma.toFixed(3), showarrow: false, font: { size: 10.5, color: isOpen ? '#B45309' : '#15803D', family: PLOT_FONT.family }, bgcolor: isOpen ? 'rgba(180,83,9,.10)' : 'rgba(21,128,61,.10)', bordercolor: isOpen ? 'rgba(180,83,9,.35)' : 'rgba(21,128,61,.35)', borderpad: 4, borderwidth: 1 }
+    ]
   });
   const open = rar.gamma > 0.05 ? 'an <b>open</b>' : 'a <b>closed</b>';
   document.getElementById(capId).innerHTML = `Averaged over <b>${rar.perms}</b> random permutations of up to <b>${rar.Ncap}</b> genomes${rar.total > rar.Ncap ? ' (of ' + fmt(rar.total) + ')' : ''}. Heaps' law γ&nbsp;=&nbsp;<b>${rar.gamma.toFixed(3)}</b> → ${open} metabolic panreactome (pan keeps growing as N^γ; core plateaus).`;
@@ -796,24 +808,35 @@ function renderVolcano(volc, nTest, nA, nB) {
   const mk = (arr, color, name) => ({
     x: arr.map(v => v[1] * 100), y: arr.map(v => v[2]),
     customdata: arr.map(v => [esc(m.vocab[v[0]].id), esc((m.vocab[v[0]].name || '').slice(0, 40)), (v[3] * 100).toFixed(0), (v[4] * 100).toFixed(0)]),
-    mode: 'markers', type: 'scattergl', name,
-    marker: { size: name === 'n.s.' ? 4 : 6, color, opacity: name === 'n.s.' ? 0.35 : 0.75, line: { width: 0 } },
+    mode: 'markers', type: 'scatter', name,
+    marker: { size: name === 'n.s.' ? 4 : 6, color, opacity: name === 'n.s.' ? 0.35 : 0.78, line: { width: 0 } },
     hovertemplate: '<b>%{customdata[0]}</b> %{customdata[1]}<br>Δ %{x:.0f} pts · A %{customdata[2]}% / B %{customdata[3]}%<br>−log₁₀p %{y:.1f}<extra></extra>'
   });
   const yMax = Math.max(bonf + 1, ...volc.map(v => v[2]).filter(v => isFinite(v)));
+  // label the strongest few hits on each side
+  const topOf = arr => arr.slice().filter(v => isFinite(v[2])).sort((a, b) => b[2] - a[2]).slice(0, 4);
+  const hitAnns = topOf(groups.A).concat(topOf(groups.B)).map(v => ({
+    x: Math.max(-100, Math.min(100, v[1] * 100)), y: Math.min(yMax, v[2]),
+    text: esc(m.vocab[v[0]].id), showarrow: true, arrowhead: 0, arrowwidth: 0.8, arrowcolor: '#b9c2d0', ax: v[1] > 0 ? 16 : -16, ay: -12,
+    font: { size: 8.5, color: v[1] > 0 ? ECO : LACTO, family: PLOT_FONT.family }, xanchor: v[1] > 0 ? 'left' : 'right'
+  }));
   newPlot('g-volcano', [mk(groups.ns, '#c2cad6', 'n.s.'), mk(groups.B, LACTO, 'Enriched in B'), mk(groups.A, ECO, 'Enriched in A')], {
-    height: 440, margin: { l: 56, r: 16, t: 12, b: 46 },
-    xaxis: { title: { text: 'Δ prevalence (A − B), percentage points', font: PLOT_FONT }, gridcolor: LINE, zeroline: true, zerolinecolor: '#dfe5ee', range: [-105, 105] },
+    height: 440, margin: { l: 56, r: 16, t: 26, b: 46 },
+    xaxis: { title: { text: 'Δ prevalence (A − B), percentage points', font: PLOT_FONT }, gridcolor: LINE, zeroline: true, zerolinecolor: '#dfe5ee', range: [-108, 108] },
     yaxis: { title: { text: '−log₁₀ p (χ², Yates)', font: PLOT_FONT }, gridcolor: LINE, zeroline: false, rangemode: 'tozero' },
-    legend: { orientation: 'h', y: 1.1, x: 0, font: { size: 10 } },
+    legend: { orientation: 'h', y: 1.12, x: 0, font: { size: 10 } },
     shapes: [
-      { type: 'line', x0: -105, x1: 105, y0: sigLine, y1: sigLine, line: { color: '#9aa4b2', width: 1, dash: 'dash' } },
-      { type: 'line', x0: -105, x1: 105, y0: bonf, y1: bonf, line: { color: '#d0563b', width: 1, dash: 'dot' } }
+      { type: 'rect', xref: 'paper', yref: 'paper', x0: 0.5, x1: 1, y0: 0, y1: 1, fillcolor: 'rgba(37,99,235,.04)', line: { width: 0 }, layer: 'below' },
+      { type: 'rect', xref: 'paper', yref: 'paper', x0: 0, x1: 0.5, y0: 0, y1: 1, fillcolor: 'rgba(217,119,6,.04)', line: { width: 0 }, layer: 'below' },
+      { type: 'line', x0: -108, x1: 108, y0: sigLine, y1: sigLine, line: { color: '#9aa4b2', width: 1, dash: 'dash' } },
+      { type: 'line', x0: -108, x1: 108, y0: bonf, y1: bonf, line: { color: '#d0563b', width: 1, dash: 'dot' } }
     ],
-    annotations: [
+    annotations: hitAnns.concat([
       { x: -103, y: sigLine, xanchor: 'left', yanchor: 'bottom', text: 'p=0.05', showarrow: false, font: { size: 9, color: INK3 } },
-      { x: 103, y: bonf, xanchor: 'right', yanchor: 'bottom', text: 'Bonferroni', showarrow: false, font: { size: 9, color: '#d0563b' } }
-    ]
+      { x: 103, y: bonf, xanchor: 'right', yanchor: 'bottom', text: 'Bonferroni', showarrow: false, font: { size: 9, color: '#d0563b' } },
+      { x: 0.02, y: 0.99, xref: 'paper', yref: 'paper', xanchor: 'left', yanchor: 'top', text: '◀ enriched in <b>B</b>', showarrow: false, font: { size: 10, color: LACTO, family: PLOT_FONT.family } },
+      { x: 0.98, y: 0.99, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'top', text: 'enriched in <b>A</b> ▶', showarrow: false, font: { size: 10, color: ECO, family: PLOT_FONT.family } }
+    ])
   });
   document.getElementById('g-volcano-cap').innerHTML = `<b>${fmt(groups.A.length)}</b> features significantly enriched in A, <b>${fmt(groups.B.length)}</b> in B (p&lt;0.05 &amp; |Δ|≥5pts). Dashed = p=0.05; dotted red = Bonferroni over ${fmt(nTest)} tests. χ² with Yates' correction on a 2×2 present/absent table.`;
 }
@@ -974,11 +997,21 @@ function renderProps() {
     stat(fmt(Math.round(med(eco, 'n_reactions'))), 'E. coli median reactions', 'eco') +
     stat(fmt(Math.round(med(lac, 'n_reactions'))), 'Lacto median reactions', 'lacto');
 
+  // cloud-centroid labels (drawn only when colouring by collection, to avoid clutter)
+  const cloudLabels = (rows, xf, yf) => {
+    if (colorBy !== 'dataset') return [];
+    const g = { e: { x: 0, y: 0, n: 0 }, l: { x: 0, y: 0, n: 0 } };
+    rows.forEach(r => { const t = r.dataset === 'EcopanGEM' ? g.e : g.l; t.x += xf(r); t.y += yf(r); t.n++; });
+    const out = [];
+    if (g.e.n) out.push({ x: g.e.x / g.e.n, y: g.e.y / g.e.n, text: '<b><i>E. coli</i></b>', showarrow: false, font: { size: 12, color: ECO, family: PLOT_FONT.family }, bgcolor: 'rgba(255,255,255,.75)', bordercolor: 'rgba(37,99,235,.4)', borderpad: 3, borderwidth: 1 });
+    if (g.l.n) out.push({ x: g.l.x / g.l.n, y: g.l.y / g.l.n, text: '<b>Lactobacillaceae</b>', showarrow: false, font: { size: 12, color: LACTO, family: PLOT_FONT.family }, bgcolor: 'rgba(255,255,255,.75)', bordercolor: 'rgba(217,119,6,.4)', borderpad: 3, borderwidth: 1 });
+    return out;
+  };
   // scatter 1: GC vs genome length
   const gcRows = META.filter(r => +r.gc_content > 0 && +r.genome_length > 0);
   newPlot('pr-scatter1', propTraces(gcRows, colorBy, r => +r.gc_content, r => +r.genome_length / 1e6,
     'GC %{x:.1f}%<br>genome %{y:.2f} Mb'),
-    { xaxis: { title: 'GC content (%)' }, yaxis: { title: 'genome length (Mb)' }, height: 380, legend: { orientation: 'h', y: 1.12, font: { size: 10 } }, margin: { l: 52, r: 12, t: 8, b: 42 } });
+    { xaxis: { title: 'GC content (%)' }, yaxis: { title: 'genome length (Mb)' }, height: 380, legend: { orientation: 'h', y: 1.12, font: { size: 10 } }, margin: { l: 52, r: 12, t: 8, b: 42 }, annotations: cloudLabels(gcRows, r => +r.gc_content, r => +r.genome_length / 1e6) });
 
   // scatter 2: genome length vs model size + trend
   const szRows = META.filter(r => +r.genome_length > 0 && +r[ym] > 0);
@@ -988,7 +1021,7 @@ function renderProps() {
   const trend = { type: 'scatter', mode: 'lines', name: 'trend', x: [xmin, xmax], y: [f.a + f.b * xmin, f.a + f.b * xmax], line: { color: INK1, width: 2, dash: 'dash' }, hoverinfo: 'skip', showlegend: false };
   newPlot('pr-scatter2', propTraces(szRows, colorBy, r2 => +r2.genome_length / 1e6, r2 => +r2[ym], 'genome %{x:.2f} Mb<br>' + PR_YLAB[ym] + 's %{y}').concat([trend]),
     { xaxis: { title: 'genome length (Mb)' }, yaxis: { title: PR_YLAB[ym] + 's per model' }, height: 380, legend: { orientation: 'h', y: 1.12, font: { size: 10 } }, margin: { l: 56, r: 12, t: 8, b: 42 },
-      annotations: [{ x: 0.02, y: 0.97, xref: 'paper', yref: 'paper', text: '<b>Pearson r = ' + r.toFixed(2) + '</b>', showarrow: false, font: { size: 12, color: INK1 }, bgcolor: 'rgba(255,255,255,.82)', bordercolor: LINE, borderpad: 4, align: 'left' }] });
+      annotations: [{ x: 0.02, y: 0.97, xref: 'paper', yref: 'paper', text: '<b>Pearson r = ' + r.toFixed(2) + '</b>', showarrow: false, font: { size: 12, color: INK1 }, bgcolor: 'rgba(255,255,255,.82)', bordercolor: LINE, borderpad: 4, align: 'left' }].concat(cloudLabels(szRows, r2 => +r2.genome_length / 1e6, r2 => +r2[ym])) });
 
   // box: distribution of model size by collection
   const mets = [['n_reactions', 'Reactions'], ['n_metabolites', 'Metabolites'], ['n_genes', 'Genes']];
@@ -1048,10 +1081,22 @@ async function renderGeo() {
   const topStr = top.slice(0, 5).map(([i, n]) => '<b>' + i + '</b> ' + fmt(n)).join(' · ');
   document.getElementById('ge-map-cap').innerHTML = 'Top isolation countries: ' + topStr + '. ' + Math.round(100 * (rows.length - withCountry) / rows.length) + '% of the selection has no recorded country.';
 
-  // isolation sources
+  // isolation sources, coloured by ecological niche
   const src = topCounts(rows, 'isolation_source', 15).reverse();
-  newPlot('ge-source', [{ type: 'bar', orientation: 'h', x: src.map(s => s[1]), y: src.map(s => s[0]), marker: { color: ECO }, hovertemplate: '%{y}: %{x} genomes<extra></extra>' }],
-    { xaxis: { title: 'genomes' }, yaxis: { automargin: true, tickfont: { size: 10 } }, height: 360, margin: { l: 8, r: 12, t: 8, b: 36 } });
+  const NICHE = [
+    ['Gut / faecal', '#2563EB', /fec|faec|stool|rectal|ileum|gut|intestin|colon|caecal|cecal|mucosa/],
+    ['Dairy / fermented', '#D97706', /cheese|kimchi|milk|yog|ferment|brine|dairy|sourdough|kefir|wine|olive|kraut|silage|pickle|beer|must|whey|dosa|idli|nham|boza/],
+    ['Clinical', '#DC2626', /blood|urine|wound|sputum|clinical|csf|abscess|pus|catheter|bile|vagin|oral|saliva|dental|infection/],
+    ['Food / plant', '#15803D', /food|dietary|supplement|cucumber|plant|vegetable|meat|sausage|grain|fruit|maize|cereal|flower|leaf|root|soil/],
+  ];
+  const nicheOf = s => { for (const [nm, , re] of NICHE) if (re.test(s)) return nm; return 'Other'; };
+  const nicheCol = { Other: '#94A3B8' }; NICHE.forEach(([nm, c]) => nicheCol[nm] = c);
+  const labelsS = src.map(s => s[0]);
+  const byN = {}; src.forEach(([lbl], i) => { const nm = nicheOf(lbl); (byN[nm] = byN[nm] || []).push(i); });
+  const order = NICHE.map(x => x[0]).concat('Other').filter(nm => byN[nm]);
+  const srcTraces = order.map(nm => ({ type: 'bar', orientation: 'h', name: nm, y: byN[nm].map(i => labelsS[i]), x: byN[nm].map(i => src[i][1]), marker: { color: nicheCol[nm] }, hovertemplate: '%{y}: %{x} genomes<extra>' + nm + '</extra>' }));
+  newPlot('ge-source', srcTraces,
+    { barmode: 'stack', xaxis: { title: 'genomes' }, yaxis: { automargin: true, tickfont: { size: 10 }, categoryorder: 'array', categoryarray: labelsS }, height: 360, margin: { l: 8, r: 12, t: 8, b: 36 }, legend: { orientation: 'h', y: 1.06, x: 0, font: { size: 9.5 } }, showlegend: true });
   // hosts
   const host = topCounts(rows, 'host_name', 12).reverse();
   newPlot('ge-host', [{ type: 'bar', orientation: 'h', x: host.map(s => s[1]), y: host.map(s => s[0]), marker: { color: LACTO }, hovertemplate: '%{y}: %{x} genomes<extra></extra>' }],
