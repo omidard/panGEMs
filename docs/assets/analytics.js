@@ -486,6 +486,20 @@ function runDistance() {
     xaxis: { tickangle: -55, tickfont: { size: 9.5, family: PLOT_FONT.family, color: INK2 }, ticktext: tickText, tickvals: labels, automargin: true },
     yaxis: { autorange: 'reversed', tickfont: { size: 9.5, family: PLOT_FONT.family, color: INK2 }, ticktext: tickText, tickvals: labels, automargin: true }
   });
+  // computed interpretation: within-Lacto cohesion vs the E. coli outgroup gap
+  const isEco = orgs.map(o => META[speciesMembers(o)[0]].dataset === 'EcopanGEM');
+  let ll = 0, lln = 0, el = 0, eln = 0, best = Infinity, bi = 0, bj = 1;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const d = D[i][j];
+    if (!isEco[i] && !isEco[j]) { ll += d; lln++; if (d < best) { best = d; bi = i; bj = j; } }
+    else if (isEco[i] !== isEco[j]) { el += d; eln++; }
+  }
+  const mLL = lln ? ll / lln : 0, mEL = eln ? el / eln : 0, unit = dist === 'cosine' ? '1−cosine' : 'weighted-Jaccard';
+  document.getElementById('dm-interp').innerHTML =
+    ico() + 'Within the <span class="lm">Lactobacillaceae</span>, species sit a mean <b>' + mLL.toFixed(3) + '</b> ' + unit + ' apart — a metabolically coherent block. '
+    + '<span class="em">E. coli</span> sits <b>' + mEL.toFixed(3) + '</b> from them on average, <b>' + (mLL > 0 ? (mEL / mLL).toFixed(1) : '∞') + '×</b> farther than the lactobacilli are from each other: the bright cross that marks it as the metabolic outgroup. '
+    + 'The most metabolically similar pair here is <b><i>' + esc(abbr(orgs[bi])) + '</i></b> and <b><i>' + esc(abbr(orgs[bj])) + '</i></b> (' + best.toFixed(3) + '). '
+    + 'Blocks of low distance are clades that could share media and engineering strategies.';
 }
 
 /* =============================== SPECIES TREE (polished) =============================== */
@@ -528,8 +542,10 @@ function drawTree() {
   node.filter(d => d.data.leaf).style('cursor', 'pointer')
     .on('mousemove', (ev, d) => showTip(`<b><i>${esc(d.data.name)}</i></b><br><span class="k">${d.data.count} models · click to open in clustermap</span>`, ev.clientX, ev.clientY))
     .on('mouseleave', hideTip).on('click', (ev, d) => openSpecies(d.data.organism));
-  d3.select(holder).append('div').attr('style', 'font-size:12px;color:var(--ink-3);margin-top:10px;padding:9px 12px;background:var(--raise);border-radius:9px;border-left:3px solid var(--accent)')
-    .html(tMode === 'taxonomy' ? 'NCBI-style taxonomy: family → genus → species. Circle colour = collection. Structure is fixed, not inferred.' : 'Dendrogram from mean reaction-presence per species (1 − cosine, average linkage). The topology recovers the Lactobacillaceae genera and isolates <b><i>E. coli</i></b> as an outgroup — a purely metabolic signal matching taxonomy.');
+  d3.select(holder).append('div').attr('class', 'interp').style('margin-top', '12px')
+    .html(ico() + (tMode === 'taxonomy'
+      ? 'This is the <b>NCBI taxonomy</b> — family → genus → species, a fixed reference, not inferred from the models. Circle colour marks the collection. Switch to <b>Metabolic content</b> to see whether reaction repertoires alone rebuild this same shape.'
+      : 'This dendrogram is built <b>only from metabolism</b> — mean reaction presence per species, 1−cosine distance, average linkage. It independently recovers the <span class="lm">Lactobacillaceae</span> genera and isolates <span class="em">E. coli</span> as a lone outgroup, so metabolic content carries the same signal as the taxonomy above: closely related species really do build similar networks. Click any leaf to open its clustermap.'));
 }
 
 /* =============================== COMPARE MODELS (+ UpSet) =============================== */
