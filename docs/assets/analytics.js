@@ -814,7 +814,7 @@ function renderVolcano(volc, nTest, nA, nB) {
   });
   const yMax = Math.max(bonf + 1, ...volc.map(v => v[2]).filter(v => isFinite(v)));
   // label the strongest few hits on each side
-  const topOf = arr => arr.slice().filter(v => isFinite(v[2])).sort((a, b) => b[2] - a[2]).slice(0, 4);
+  const topOf = arr => arr.slice().filter(v => isFinite(v[2])).sort((a, b) => b[2] - a[2]).slice(0, 3);
   const hitAnns = topOf(groups.A).concat(topOf(groups.B)).map(v => ({
     x: Math.max(-100, Math.min(100, v[1] * 100)), y: Math.min(yMax, v[2]),
     text: esc(m.vocab[v[0]].id), showarrow: true, arrowhead: 0, arrowwidth: 0.8, arrowcolor: '#b9c2d0', ax: v[1] > 0 ? 16 : -16, ay: -12,
@@ -834,8 +834,8 @@ function renderVolcano(volc, nTest, nA, nB) {
     annotations: hitAnns.concat([
       { x: -103, y: sigLine, xanchor: 'left', yanchor: 'bottom', text: 'p=0.05', showarrow: false, font: { size: 9, color: INK3 } },
       { x: 103, y: bonf, xanchor: 'right', yanchor: 'bottom', text: 'Bonferroni', showarrow: false, font: { size: 9, color: '#d0563b' } },
-      { x: 0.02, y: 0.99, xref: 'paper', yref: 'paper', xanchor: 'left', yanchor: 'top', text: '◀ enriched in <b>B</b>', showarrow: false, font: { size: 10, color: LACTO, family: PLOT_FONT.family } },
-      { x: 0.98, y: 0.99, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'top', text: 'enriched in <b>A</b> ▶', showarrow: false, font: { size: 10, color: ECO, family: PLOT_FONT.family } }
+      { x: 0.02, y: 0.03, xref: 'paper', yref: 'paper', xanchor: 'left', yanchor: 'bottom', text: '◀ enriched in <b>B</b>', showarrow: false, font: { size: 10.5, color: LACTO, family: PLOT_FONT.family }, bgcolor: 'rgba(255,255,255,.7)', borderpad: 2 },
+      { x: 0.98, y: 0.03, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'bottom', text: 'enriched in <b>A</b> ▶', showarrow: false, font: { size: 10.5, color: ECO, family: PLOT_FONT.family }, bgcolor: 'rgba(255,255,255,.7)', borderpad: 2 }
     ])
   });
   document.getElementById('g-volcano-cap').innerHTML = `<b>${fmt(groups.A.length)}</b> features significantly enriched in A, <b>${fmt(groups.B.length)}</b> in B (p&lt;0.05 &amp; |Δ|≥5pts). Dashed = p=0.05; dotted red = Bonferroni over ${fmt(nTest)} tests. χ² with Yates' correction on a 2×2 present/absent table.`;
