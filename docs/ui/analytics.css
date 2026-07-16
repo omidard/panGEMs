@@ -323,6 +323,29 @@ button { cursor: pointer; font-family: var(--font-ui); }
   border-left: 3px solid var(--accent);
 }
 .caption b { color: var(--ink); font-weight: 600; }
+
+/* Interpretation callout — the computed read-out of a result. More prominent than a
+   neutral "Look for" caption: an accent-tinted panel with a labelled lead, in the
+   spirit of Flux Studio's analysis notes. */
+.interp {
+  font-size: 12.8px; color: var(--ink-2); line-height: 1.65;
+  margin-top: 13px; padding: 12px 15px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+}
+.interp + .interp { margin-top: 9px; }
+.interp b, .interp strong { color: var(--ink); font-weight: 600; }
+.interp .lead {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 700; color: var(--accent-2); margin-right: 4px;
+}
+.interp .lead svg { width: 14px; height: 14px; stroke: currentColor; flex: none; }
+[data-theme='dark'] .interp .lead { color: var(--accent); }
+.interp .em { color: var(--eco); font-weight: 700; }
+.interp .lm { color: var(--lacto); font-weight: 700; }
+
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-12-hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; }
 @media (max-width: 1050px) { .grid2, .grid-12-hero { grid-template-columns: 1fr; } }

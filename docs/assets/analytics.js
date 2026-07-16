@@ -187,12 +187,16 @@ function initUI() {
   document.querySelectorAll('.nav-item').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
   window.addEventListener('resize', () => { plotDivs.forEach(id => { const el = document.getElementById(id); if (el && el.offsetParent) try { Plotly.Plots.resize(el); } catch (e) {} }); });
   initOverview(); initLandscape(); initOpenness(); initDistance(); initTree();
+  initProps(); initGeo();
   initModels(); initGroups(); initCluster();
-  switchView('overview');
+  const start = (location.hash || '').replace(/^#/, '');
+  switchView(document.getElementById('view-' + start) ? start : 'overview');
+  window.addEventListener('hashchange', () => { const n = (location.hash || '').replace(/^#/, ''); if (document.getElementById('view-' + n)) switchView(n); });
 }
 function switchView(name) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  try { history.replaceState(null, '', '#' + name); } catch (e) {}
   document.getElementById('sidebar').classList.remove('open');
   if (!shown[name]) { shown[name] = true; if (onShow[name]) onShow[name](); }
   // resize plotly in the now-visible view
@@ -856,6 +860,134 @@ function drawDendro(ctx, root, leafPos, o) {
     ctx.stroke();
     return { cross: (a.cross + b.cross) / 2, depth: d };
   })(root);
+}
+
+/* =============================== GENOME PROPERTIES =============================== */
+function pearson(xs, ys) { const n = xs.length; let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0; for (let i = 0; i < n; i++) { const x = xs[i], y = ys[i]; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; } const cov = sxy - sx * sy / n, vx = sxx - sx * sx / n, vy = syy - sy * sy / n; return cov / Math.sqrt(vx * vy); }
+function linfit(xs, ys) { const n = xs.length; let sx = 0, sy = 0, sxx = 0, sxy = 0; for (let i = 0; i < n; i++) { sx += xs[i]; sy += ys[i]; sxx += xs[i] * xs[i]; sxy += xs[i] * ys[i]; } const b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a = (sy - b * sx) / n; return { a, b }; }
+function median(a) { if (!a.length) return NaN; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+const PR_YLAB = { n_reactions: 'reaction', n_metabolites: 'metabolite', n_genes: 'gene' };
+
+function initProps() {
+  onShow.props = renderProps;
+  document.querySelectorAll('#pr-color button').forEach(b => b.addEventListener('click', () => { seg(b, '#pr-color'); renderProps(); }));
+  document.querySelectorAll('#pr-ymetric button').forEach(b => b.addEventListener('click', () => { seg(b, '#pr-ymetric'); renderProps(); }));
+}
+function propTraces(rows, colorBy, xf, yf, hover) {
+  const groups = {};
+  rows.forEach(r => { const key = colorBy === 'dataset' ? (r.dataset === 'EcopanGEM' ? 'E. coli' : 'Lactobacillaceae') : genusLabel(r.organism); (groups[key] = groups[key] || []).push(r); });
+  return Object.entries(groups).sort((a, b) => b[1].length - a[1].length).map(([name, rs]) => ({
+    type: 'scatter', mode: 'markers', name,
+    x: rs.map(xf), y: rs.map(yf),
+    marker: { size: 5, color: colorBy === 'dataset' ? (name === 'E. coli' ? ECO : LACTO) : genusColor(rs[0].organism), opacity: 0.5, line: { width: 0 } },
+    text: rs.map(r => abbr(r.organism) + (r.strain ? ' ' + r.strain : '')),
+    hovertemplate: '%{text}<br>' + hover + '<extra></extra>',
+  }));
+}
+function renderProps() {
+  const colorBy = document.querySelector('#pr-color button.active').dataset.c;
+  const ym = document.querySelector('#pr-ymetric button.active').dataset.y;
+  document.querySelectorAll('.pr-ylabel').forEach(e => e.textContent = PR_YLAB[ym]);
+  const eco = rowsOfDataset('EcopanGEM').map(i => META[i]), lac = rowsOfDataset('LactoPanGEM').map(i => META[i]);
+  const med = (rows, f) => median(rows.map(r => +r[f]).filter(v => v > 0));
+  document.getElementById('pr-stats').innerHTML =
+    stat((med(eco, 'genome_length') / 1e6).toFixed(2) + ' Mb', 'E. coli median genome', 'eco') +
+    stat((med(lac, 'genome_length') / 1e6).toFixed(2) + ' Mb', 'Lacto median genome', 'lacto') +
+    stat(med(eco, 'gc_content').toFixed(1) + '%', 'E. coli median GC', 'eco') +
+    stat(med(lac, 'gc_content').toFixed(1) + '%', 'Lacto median GC', 'lacto') +
+    stat(fmt(Math.round(med(eco, 'n_reactions'))), 'E. coli median reactions', 'eco') +
+    stat(fmt(Math.round(med(lac, 'n_reactions'))), 'Lacto median reactions', 'lacto');
+
+  // scatter 1: GC vs genome length
+  const gcRows = META.filter(r => +r.gc_content > 0 && +r.genome_length > 0);
+  newPlot('pr-scatter1', propTraces(gcRows, colorBy, r => +r.gc_content, r => +r.genome_length / 1e6,
+    'GC %{x:.1f}%<br>genome %{y:.2f} Mb'),
+    { xaxis: { title: 'GC content (%)' }, yaxis: { title: 'genome length (Mb)' }, height: 380, legend: { orientation: 'h', y: 1.12, font: { size: 10 } }, margin: { l: 52, r: 12, t: 8, b: 42 } });
+
+  // scatter 2: genome length vs model size + trend
+  const szRows = META.filter(r => +r.genome_length > 0 && +r[ym] > 0);
+  const xs = szRows.map(r => +r.genome_length / 1e6), ys = szRows.map(r => +r[ym]);
+  const r = pearson(xs, ys), f = linfit(xs, ys);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const trend = { type: 'scatter', mode: 'lines', name: 'trend', x: [xmin, xmax], y: [f.a + f.b * xmin, f.a + f.b * xmax], line: { color: INK1, width: 2, dash: 'dash' }, hoverinfo: 'skip', showlegend: false };
+  newPlot('pr-scatter2', propTraces(szRows, colorBy, r2 => +r2.genome_length / 1e6, r2 => +r2[ym], 'genome %{x:.2f} Mb<br>' + PR_YLAB[ym] + 's %{y}').concat([trend]),
+    { xaxis: { title: 'genome length (Mb)' }, yaxis: { title: PR_YLAB[ym] + 's per model' }, height: 380, legend: { orientation: 'h', y: 1.12, font: { size: 10 } }, margin: { l: 56, r: 12, t: 8, b: 42 },
+      annotations: [{ x: 0.02, y: 0.97, xref: 'paper', yref: 'paper', text: '<b>Pearson r = ' + r.toFixed(2) + '</b>', showarrow: false, font: { size: 12, color: INK1 }, bgcolor: 'rgba(255,255,255,.82)', bordercolor: LINE, borderpad: 4, align: 'left' }] });
+
+  // box: distribution of model size by collection
+  const mets = [['n_reactions', 'Reactions'], ['n_metabolites', 'Metabolites'], ['n_genes', 'Genes']];
+  const boxTrace = (rows, name, color) => {
+    const xcat = [], yv = [];
+    mets.forEach(([f, lbl]) => rows.forEach(rr => { const v = +rr[f]; if (v > 0) { xcat.push(lbl); yv.push(v); } }));
+    return { type: 'box', name, x: xcat, y: yv, marker: { color }, line: { width: 1.2 }, boxpoints: false, fillcolor: color + '33' };
+  };
+  newPlot('pr-box', [boxTrace(eco, 'E. coli', ECO), boxTrace(lac, 'Lactobacillaceae', LACTO)],
+    { boxmode: 'group', yaxis: { title: 'count per model' }, height: 340, legend: { orientation: 'h', y: 1.1 }, margin: { l: 56, r: 12, t: 8, b: 34 } });
+
+  const dGC = med(eco, 'gc_content') - med(lac, 'gc_content');
+  document.getElementById('pr-interp').innerHTML =
+    ico() + 'The two collections separate cleanly before any modelling. '
+    + '<span class="em">E. coli</span> genomes are larger (median <b>' + (med(eco, 'genome_length') / 1e6).toFixed(2) + ' Mb</b>, GC <b>' + med(eco, 'gc_content').toFixed(1) + '%</b>) than the '
+    + '<span class="lm">Lactobacillaceae</span> (<b>' + (med(lac, 'genome_length') / 1e6).toFixed(2) + ' Mb</b>, GC <b>' + med(lac, 'gc_content').toFixed(1) + '%</b>) — a ' + Math.abs(dGC).toFixed(0) + '-point GC gap that is the classic low-GC signature of the lactobacilli. '
+    + 'Across all ' + fmt(szRows.length) + ' genomes, genome length and ' + PR_YLAB[ym] + ' count correlate at <b>r = ' + r.toFixed(2) + '</b>: '
+    + (r > 0.6 ? 'a bigger genome does buy a richer model' : r > 0.3 ? 'genome size explains part of model richness, but reconstruction and curation add scatter' : 'model richness is only weakly set by genome size — curation dominates') + '. '
+    + 'The box plot shows the spread each collection contributes to the pan-model.';
+}
+
+/* =============================== GEOGRAPHY & ECOLOGY =============================== */
+let GEO_JSON = null;
+function ico() { return '<span class="lead"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5c-.7.7-1 1.2-1 2.5H9c0-1.3-.3-1.8-1-2.5A6 6 0 0 1 12 3Z"/></svg>Interpretation</span> ';}
+function initGeo() {
+  onShow.geo = renderGeo;
+  document.querySelectorAll('#ge-scope button').forEach(b => b.addEventListener('click', () => { seg(b, '#ge-scope'); renderGeo(); }));
+  document.querySelectorAll('#ge-scale button').forEach(b => b.addEventListener('click', () => { seg(b, '#ge-scale'); renderGeo(); }));
+}
+function cleanStr(s) { return String(s == null ? '' : s).trim(); }
+function topCounts(rows, field, k) {
+  const c = {}; rows.forEach(r => { const v = cleanStr(r[field]).toLowerCase(); if (v && v !== 'nan' && v !== 'none' && v !== 'missing' && v !== 'not collected') c[v] = (c[v] || 0) + 1; });
+  return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, k);
+}
+async function renderGeo() {
+  if (!GEO_JSON) { try { GEO_JSON = await fetch('assets/world.geojson').then(r => r.json()); } catch (e) { GEO_JSON = { type: 'FeatureCollection', features: [] }; } }
+  const scope = document.querySelector('#ge-scope button.active').dataset.s;
+  const logScale = document.querySelector('#ge-scale button.active').dataset.v === 'log';
+  const rows = scope === 'all' ? META : META.filter(r => r.dataset === scope);
+  // country counts
+  const cc = {}; rows.forEach(r => { const iso = cleanStr(r.country_iso).toUpperCase(); if (iso && iso !== 'NAN') cc[iso] = (cc[iso] || 0) + 1; });
+  const isos = Object.keys(cc), counts = isos.map(i => cc[i]);
+  const withCountry = counts.reduce((a, b) => a + b, 0);
+  const top = Object.entries(cc).sort((a, b) => b[1] - a[1]);
+  const allIsos = (GEO_JSON.features || []).map(f => f.properties && f.properties.iso).filter(Boolean);
+
+  document.getElementById('ge-stats').innerHTML =
+    stat(fmt(withCountry), 'genomes with a country') +
+    stat(Math.round(100 * withCountry / rows.length) + '%', 'of the selection') +
+    stat(fmt(isos.length), 'countries') +
+    (top[0] ? stat(top[0][0] + ' · ' + fmt(top[0][1]), 'top country') : '');
+
+  // base (all countries grey) + data overlay
+  const base = { type: 'choropleth', geojson: GEO_JSON, featureidkey: 'properties.iso', locations: allIsos, z: allIsos.map(() => 0), showscale: false, colorscale: [[0, '#E9EDF4'], [1, '#E9EDF4']], marker: { line: { color: '#FFFFFF', width: 0.4 } }, hoverinfo: 'skip' };
+  const data = { type: 'choropleth', geojson: GEO_JSON, featureidkey: 'properties.iso', locations: isos, z: logScale ? counts.map(c => Math.log10(c)) : counts, text: isos.map(i => i + ': ' + cc[i] + ' genomes'), colorscale: [[0, '#EDE7FB'], [0.5, '#B79CF0'], [1, '#6D28D9']], marker: { line: { color: '#FFFFFF', width: 0.4 } }, colorbar: { title: { text: logScale ? 'log₁₀ genomes' : 'genomes', font: { size: 10 } }, thickness: 12, len: 0.75, x: 0.98 }, hovertemplate: '%{text}<extra></extra>' };
+  newPlot('ge-map', [base, data], { geo: { projection: { type: 'natural earth' }, showframe: false, showcoastlines: false, showland: false, showocean: false, bgcolor: 'rgba(0,0,0,0)', lataxis: { range: [-56, 82] }, lonaxis: { range: [-170, 190] } }, margin: { l: 0, r: 0, t: 4, b: 0 }, height: 460 });
+  const topStr = top.slice(0, 5).map(([i, n]) => '<b>' + i + '</b> ' + fmt(n)).join(' · ');
+  document.getElementById('ge-map-cap').innerHTML = 'Top isolation countries: ' + topStr + '. ' + Math.round(100 * (rows.length - withCountry) / rows.length) + '% of the selection has no recorded country.';
+
+  // isolation sources
+  const src = topCounts(rows, 'isolation_source', 15).reverse();
+  newPlot('ge-source', [{ type: 'bar', orientation: 'h', x: src.map(s => s[1]), y: src.map(s => s[0]), marker: { color: ECO }, hovertemplate: '%{y}: %{x} genomes<extra></extra>' }],
+    { xaxis: { title: 'genomes' }, yaxis: { automargin: true, tickfont: { size: 10 } }, height: 360, margin: { l: 8, r: 12, t: 8, b: 36 } });
+  // hosts
+  const host = topCounts(rows, 'host_name', 12).reverse();
+  newPlot('ge-host', [{ type: 'bar', orientation: 'h', x: host.map(s => s[1]), y: host.map(s => s[0]), marker: { color: LACTO }, hovertemplate: '%{y}: %{x} genomes<extra></extra>' }],
+    { xaxis: { title: 'genomes' }, yaxis: { automargin: true, tickfont: { size: 10 } }, height: 360, margin: { l: 8, r: 12, t: 8, b: 36 } });
+
+  const top3 = top.slice(0, 3), top3sum = top3.reduce((a, b) => a + b[1], 0);
+  const srcTop = topCounts(rows, 'isolation_source', 6).map(s => s[0]);
+  document.getElementById('ge-interp').innerHTML =
+    ico() + 'Of the ' + fmt(rows.length) + ' models in this selection, <b>' + fmt(withCountry) + '</b> (' + Math.round(100 * withCountry / rows.length) + '%) carry an isolation country, spread over <b>' + fmt(isos.length) + '</b> nations. '
+    + (top3.length ? 'Sampling is heavily concentrated: <b>' + top3.map(t => t[0]).join(', ') + '</b> alone account for <b>' + Math.round(100 * top3sum / withCountry) + '%</b> of the geolocated genomes. ' : '')
+    + (srcTop.length ? 'The habitats — <b>' + srcTop.slice(0, 5).join(', ') + '</b> — map onto the gut, dairy/fermented-food and clinical niches these species occupy. ' : '')
+    + 'Read this as the <b>sampling frame</b>, not the true distribution: it reflects where genomes were sequenced and deposited, so absence from a country means "not sampled", not "not present".';
 }
 
 /* =============================== CROSS-VIEW NAV =============================== */

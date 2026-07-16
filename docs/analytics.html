@@ -79,6 +79,17 @@
       </button>
     </div>
     <div class="nav-group">
+      <div class="lbl">Genomes &amp; ecology</div>
+      <button class="nav-item" data-view="props">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 20h18"/><circle cx="7" cy="14" r="1.6"/><circle cx="12" cy="9" r="1.6"/><circle cx="17" cy="12" r="1.6"/><circle cx="20" cy="6" r="1.6"/></svg>
+        Genome properties
+      </button>
+      <button class="nav-item" data-view="geo">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+        Geography &amp; ecology
+      </button>
+    </div>
+    <div class="nav-group">
       <div class="lbl">Compare &amp; cluster</div>
       <button class="nav-item" data-view="models">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>
@@ -209,6 +220,69 @@
         </div>
         <div id="tree-holder" style="overflow:auto"></div>
       </div>
+    </section>
+
+    <!-- ========================= GENOME PROPERTIES ========================= -->
+    <section class="view" id="view-props">
+      <div class="view-head"><h1>Genome properties &amp; model richness</h1>
+        <p>How the raw genomes translate into models. GC content, genome length and CDS count set the scale of each reconstruction — here they meet the reaction, metabolite and gene counts of the models built from them, split by collection.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl"><label>Colour by</label><span class="seg" id="pr-color"><button class="active" data-c="dataset">Collection</button><button data-c="genus">Genus</button></span></div>
+          <div class="ctl"><label>Y-axis (right plot)</label><span class="seg" id="pr-ymetric"><button class="active" data-y="n_reactions">Reactions</button><button data-y="n_metabolites">Metabolites</button><button data-y="n_genes">Genes</button></span></div>
+        </div>
+        <div class="statgrid" id="pr-stats"></div>
+      </div>
+      <div class="grid2">
+        <div class="card2">
+          <div class="hd"><div><h3>GC content vs genome length</h3></div></div>
+          <div class="sub">Each point is one genome. The two collections separate on both axes — the raw signal that they are different organisms before any model is built.</div>
+          <div id="pr-scatter1" class="plot" style="height:380px"></div>
+        </div>
+        <div class="card2">
+          <div class="hd"><div><h3>Genome length vs model size</h3></div></div>
+          <div class="sub">Does a bigger genome give a bigger model? Genome length (x) against the model's <span class="pr-ylabel">reaction</span> count (y), with the least-squares trend and Pearson <i>r</i>.</div>
+          <div id="pr-scatter2" class="plot" style="height:380px"></div>
+        </div>
+      </div>
+      <div class="card2">
+        <div class="hd"><div><h3>Distribution of model size by collection</h3></div></div>
+        <div class="sub">Reactions, metabolites, genes and exchanges per model — box &amp; points, per collection.</div>
+        <div id="pr-box" class="plot" style="height:340px"></div>
+        <div class="interp" id="pr-interp"></div>
+      </div>
+    </section>
+
+    <!-- ========================= GEOGRAPHY & ECOLOGY ========================= -->
+    <section class="view" id="view-geo">
+      <div class="view-head"><h1>Geography &amp; ecology of the collection</h1>
+        <p>Where these strains were isolated, and from what. Sampling geography and ecological niche shape any pangenome — a collection is only as broad as the places and habitats it was drawn from, so read these as the sampling frame, not the true biology.</p></div>
+      <div class="card2">
+        <div class="ctl-row">
+          <div class="ctl"><label>Show</label><span class="seg" id="ge-scope"><button class="active" data-s="all">Both collections</button><button data-s="EcopanGEM">E. coli</button><button data-s="LactoPanGEM">Lacto</button></span></div>
+          <div class="ctl"><label>Map colour</label><span class="seg" id="ge-scale"><button class="active" data-v="log">Log count</button><button data-v="lin">Linear</button></span></div>
+        </div>
+        <div class="statgrid" id="ge-stats"></div>
+      </div>
+      <div class="card2">
+        <div class="hd"><div><h3>Isolation geography</h3></div></div>
+        <div class="sub">Number of genomes with a recorded isolation country, by country. Grey = no genomes / not recorded.</div>
+        <div id="ge-map" class="plot" style="height:460px"></div>
+        <div class="caption" id="ge-map-cap"></div>
+      </div>
+      <div class="grid2">
+        <div class="card2">
+          <div class="hd"><div><h3>Top isolation sources</h3></div></div>
+          <div class="sub">The habitats these strains came from — the ecological niches represented.</div>
+          <div id="ge-source" class="plot" style="height:360px"></div>
+        </div>
+        <div class="card2">
+          <div class="hd"><div><h3>Top host organisms</h3></div></div>
+          <div class="sub">Where a host was recorded — human vs animal vs food/environment.</div>
+          <div id="ge-host" class="plot" style="height:360px"></div>
+        </div>
+      </div>
+      <div class="card2" style="padding-top:14px"><div class="interp" id="ge-interp" style="margin-top:0"></div></div>
     </section>
 
     <!-- ========================= COMPARE MODELS ========================= -->
